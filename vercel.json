@@ -1,0 +1,22 @@
+{
+  "functions": {
+    "src/app/api/reports/[id]/run/route.ts": {
+      "maxDuration": 300
+    },
+    "src/app/api/reports/generate/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/reports/[id]/status/route.ts": {
+      "maxDuration": 10
+    },
+    "src/app/api/data/geocode/route.ts": {
+      "maxDuration": 15
+    },
+    "src/app/api/data/competitors/route.ts": {
+      "maxDuration": 15
+    },
+    "src/app/api/data/population/route.ts": {
+      "maxDuration": 10
+    }
+  }
+}
