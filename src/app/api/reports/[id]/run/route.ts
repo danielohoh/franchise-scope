@@ -230,7 +230,7 @@ export async function POST(
     await updateReport(reportId, {
       analysis_result: analysisResult,
       recommendation: analysisResult.recommendation,
-      total_score: analysisResult.evaluation.total,
+      total_score: Math.min(100, Math.max(0, Math.round(analysisResult.evaluation.total))),
       llm_provider: process.env.LLM_PROVIDER ?? "anthropic",
       llm_model: process.env.LLM_MODEL ?? "",
       status: "generating",

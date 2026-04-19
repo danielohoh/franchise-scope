@@ -9,14 +9,10 @@ export const LocationInfoSchema = z.object({
   candidate_name: z.string().describe("입지 후보 명칭 (예: 연수푸르지오1단지 상가)"),
   address: z.string().describe("분석 대상 주소"),
   estimated_area_pyeong: z.number().describe("예상 점포 면적 (평)"),
-  floor: z.string().describe("층수 (예: 1층)"),
-  frontage_m: z.string().describe("전면 폭 (예: 6~8m)"),
   deposit: z.number().describe("보증금 (원)"),
   monthly_rent: z.number().describe("월 임대료 (원)"),
   key_money: z.number().describe("권리금 (원)"),
   maintenance_fee: z.number().describe("관리비 (원)"),
-  parking: z.string().describe("주차 가능 여부 및 설명"),
-  delivery_coverage: z.string().describe("배달 권역 설명"),
 });
 
 export const PopulationRadiusSchema = z.object({
@@ -99,15 +95,24 @@ export const SWOTSchema = z.object({
 });
 
 export const EvaluationResultSchema = z.object({
-  location: z.object({ score: z.number(), max: z.literal(20) }),
-  demand: z.object({ score: z.number(), max: z.literal(20) }),
-  competition: z.object({ score: z.number(), max: z.literal(15) }),
-  profitability: z.object({ score: z.number(), max: z.literal(25) }),
-  growth: z.object({ score: z.number(), max: z.literal(10) }),
-  brand_fit: z.object({ score: z.number(), max: z.literal(10) }),
-  total: z.number().min(0).max(100).describe("총점 /100"),
-  grade: z.string().describe("등급: 90~100=A+, 80~89=A, 70~79=B+, 60~69=B, 50~59=C, 50미만=D"),
+  location: z.object({ score: z.number(), max: z.number() }),
+  demand: z.object({ score: z.number(), max: z.number() }),
+  competition: z.object({ score: z.number(), max: z.number() }),
+  profitability: z.object({ score: z.number(), max: z.number() }),
+  growth: z.object({ score: z.number(), max: z.number() }),
+  brand_fit: z.object({ score: z.number(), max: z.number() }),
+  total: z.number().describe("총점 /100 — 반드시 0~100 사이 값, 위 6개 항목 score 합계와 일치"),
 });
+
+/** 총점에서 등급 자동 계산 */
+export function calcGrade(total: number): string {
+  if (total >= 90) return "A+";
+  if (total >= 80) return "A";
+  if (total >= 70) return "B+";
+  if (total >= 60) return "B";
+  if (total >= 50) return "C";
+  return "D";
+}
 
 export const CompetitorAlertSchema = z.object({
   type: z.enum(["same_building_competitor", "nearby_competitor"]),
