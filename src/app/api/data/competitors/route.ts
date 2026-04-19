@@ -12,83 +12,141 @@ const competitorsRequestSchema = z.object({
   radius: z.number().positive().max(50_000).optional(),
 });
 
-const INDUSTRY_TYPES: Record<string, string[]> = {
-  치킨: ["chicken_restaurant", "restaurant"],
-  카페: ["cafe", "coffee_shop", "bakery"],
-  한식: ["korean_restaurant", "restaurant"],
-  분식: ["korean_restaurant", "restaurant"],
+// ============================================================
+// 업종명 → Google Places includedTypes 매핑
+// https://developers.google.com/maps/documentation/places/web-service/place-types
+// ============================================================
+const GOOGLE_PLACES_TYPES: Record<string, string[]> = {
+  치킨: ["chicken_restaurant"],
+  카페: ["cafe", "coffee_shop"],
+  한식: ["korean_restaurant", "korean_barbecue_restaurant"],
+  분식: ["restaurant"],
   "피자·햄버거": ["pizza_restaurant", "hamburger_restaurant", "fast_food_restaurant"],
   편의점: ["convenience_store"],
-  서비스업: ["store", "establishment"],
-  기타: ["restaurant", "store"],
+  서비스업: ["point_of_interest"],
+  기타: ["restaurant"],
 };
 
 const FRANCHISE_KEYWORDS = [
-  "BBQ",
-  "교촌",
-  "굽네",
-  "bhc",
-  "BHC",
-  "스타벅스",
-  "메가커피",
-  "이디야",
-  "파리바게뜨",
-  "뚜레쥬르",
-  "맥도날드",
-  "버거킹",
-  "롯데리아",
-  "GS25",
-  "CU",
-  "세븐일레븐",
+  "BBQ", "교촌", "굽네", "bhc", "BHC",
+  "스타벅스", "메가커피", "이디야", "파리바게뜨", "뚜레쥬르",
+  "맥도날드", "버거킹", "롯데리아",
+  "GS25", "CU", "세븐일레븐",
 ] as const;
 
-interface PlacesNearbyResponse {
-  places?: PlaceResult[];
+function classifyType(name: string): "프랜차이즈" | "개인점" {
+  return FRANCHISE_KEYWORDS.some((k) => name.toLowerCase().includes(k.toLowerCase()))
+    ? "프랜차이즈"
+    : "개인점";
 }
 
-interface PlaceResult {
-  id?: string;
-  name?: string;
-  displayName?: {
-    text?: string;
-  };
+// ============================================================
+// Google Places API (New) — Nearby Search
+// ============================================================
+
+interface GooglePlace {
+  id: string;
+  displayName?: { text: string };
   formattedAddress?: string;
-  location?: {
-    latitude?: number;
-    longitude?: number;
-  };
+  location: { latitude: number; longitude: number };
   rating?: number;
   userRatingCount?: number;
-  businessStatus?: string;
-  regularOpeningHours?: {
-    openNow?: boolean;
+  primaryType?: string;
+}
+
+interface GooglePlacesResponse {
+  places?: GooglePlace[];
+}
+
+const FIELD_MASK = [
+  "places.id",
+  "places.displayName",
+  "places.formattedAddress",
+  "places.location",
+  "places.rating",
+  "places.userRatingCount",
+  "places.primaryType",
+].join(",");
+
+async function fetchCompetitorsFromGoogle(
+  lat: number,
+  lng: number,
+  industry: string,
+  radiusM: number,
+  apiKey: string,
+): Promise<CompetitorItem[]> {
+  const includedTypes = GOOGLE_PLACES_TYPES[industry] ?? ["restaurant"];
+
+  const body = {
+    includedTypes,
+    maxResultCount: 20,
+    rankPreference: "DISTANCE",
+    languageCode: "ko",
+    regionCode: "KR",
+    locationRestriction: {
+      circle: {
+        center: { latitude: lat, longitude: lng },
+        radius: Math.min(radiusM, 50_000),
+      },
+    },
   };
-}
 
-function classifyCompetitorType(name: string): "프랜차이즈" | "개인점" {
-  const lowerName = name.toLowerCase();
-  const isFranchise = FRANCHISE_KEYWORDS.some((keyword) => lowerName.includes(keyword.toLowerCase()));
-  return isFranchise ? "프랜차이즈" : "개인점";
-}
-
-async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-
+  let response: Response;
   try {
-    return await fetch(url, {
-      ...init,
-      signal: controller.signal,
+    response = await fetch("https://places.googleapis.com/v1/places:searchNearby", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": apiKey,
+        "X-Goog-FieldMask": FIELD_MASK,
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(10_000),
       cache: "no-store",
     });
-  } finally {
-    clearTimeout(timeout);
+  } catch (err) {
+    console.error("[competitors/google] 네트워크 오류", err);
+    return [];
   }
+
+  if (!response.ok) {
+    const errText = await response.text().catch(() => "");
+    console.error("[competitors/google] HTTP error", response.status, errText.slice(0, 200));
+    return [];
+  }
+
+  const data = (await response.json()) as GooglePlacesResponse;
+  const places = data.places ?? [];
+
+  if (places.length === 0) {
+    console.info("[competitors/google] 결과 없음");
+    return [];
+  }
+
+  return places.map((p): CompetitorItem => {
+    const placeLat = p.location.latitude;
+    const placeLng = p.location.longitude;
+    const distance = haversineDistance(lat, lng, placeLat, placeLng);
+
+    return {
+      name: p.displayName?.text ?? "이름 없음",
+      address: p.formattedAddress ?? "",
+      lat: placeLat,
+      lng: placeLng,
+      distance_m: Math.round(distance),
+      rating: p.rating ?? null,
+      review_count: p.userRatingCount ?? 0,
+      is_open: null,
+      place_id: p.id,
+      type: classifyType(p.displayName?.text ?? ""),
+    };
+  });
 }
 
-/**
- * CSV 데이터에서 경쟁점을 검색하여 CompetitorItem[] 형태로 반환한다.
- */
+// ============================================================
+// CSV 폴백
+// ============================================================
+
 async function fetchCompetitorsFromCsv(
   lat: number,
   lng: number,
@@ -103,6 +161,7 @@ async function fetchCompetitorsFromCsv(
     lng,
     radiusM,
     industryMajor,
+    industryMid: undefined,
     industrySub,
     limit: 20,
   });
@@ -113,13 +172,18 @@ async function fetchCompetitorsFromCsv(
     lat: shop.lat,
     lng: shop.lng,
     distance_m: shop.distanceM,
-    rating: null,       // CSV에는 평점 정보 없음
-    review_count: 0,    // CSV에는 리뷰 수 없음
-    is_open: null,      // CSV에는 영업 상태 없음
+    rating: null,
+    review_count: 0,
+    is_open: null,
     place_id: shop.shopId,
-    type: classifyCompetitorType(shop.name),
+    type: classifyType(shop.name),
   }));
 }
+
+// ============================================================
+// POST /api/data/competitors
+// 우선순위: Google Places → CSV 폴백
+// ============================================================
 
 export async function POST(request: Request) {
   try {
@@ -136,86 +200,25 @@ export async function POST(request: Request) {
     const { lat, lng, industry } = parsed.data;
     const radius = parsed.data.radius ?? 1000;
 
-    const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+    const googleKey = process.env.GOOGLE_PLACES_API_KEY;
+    const hasGoogleKey = Boolean(googleKey) && googleKey !== "placeholder";
 
-    // Google Places API key가 없거나 placeholder이면 CSV 폴백 사용
-    if (!apiKey || apiKey === "placeholder") {
-      console.info("[competitors] Google Places API key 없음 → CSV 폴백 사용");
+    if (hasGoogleKey && googleKey) {
+      console.info("[competitors] Google Places API 사용");
+      const competitors = await fetchCompetitorsFromGoogle(lat, lng, industry, radius, googleKey);
 
-      const competitors = await fetchCompetitorsFromCsv(lat, lng, industry, radius);
-      const payload: CompetitorsResponse = { competitors, total: competitors.length };
-      return NextResponse.json(payload);
+      if (competitors.length > 0) {
+        const payload: CompetitorsResponse = { competitors, total: competitors.length };
+        return NextResponse.json(payload);
+      }
+
+      console.info("[competitors] Google 결과 없음 → CSV 폴백");
+    } else {
+      console.info("[competitors] Google API key 없음 → CSV 폴백");
     }
 
-    // Google Places API 호출
-    const includedTypes = INDUSTRY_TYPES[industry] ?? INDUSTRY_TYPES["기타"];
-
-    const response = await fetchWithTimeout(
-      "https://places.googleapis.com/v1/places:searchNearby",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Goog-Api-Key": apiKey,
-          "X-Goog-FieldMask":
-            "places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.businessStatus,places.regularOpeningHours",
-        },
-        body: JSON.stringify({
-          includedTypes,
-          locationRestriction: {
-            circle: {
-              center: { lat, lng },
-              radius,
-            },
-          },
-          maxResultCount: 20,
-        }),
-      },
-      10_000,
-    );
-
-    if (!response.ok) {
-      const text = await response.text();
-      console.error("[competitors] Google Places API HTTP error", response.status, text);
-
-      // Google API 실패 시 CSV 폴백
-      console.info("[competitors] Google Places 실패 → CSV 폴백 사용");
-      const competitors = await fetchCompetitorsFromCsv(lat, lng, industry, radius);
-      const payload: CompetitorsResponse = { competitors, total: competitors.length };
-      return NextResponse.json(payload);
-    }
-
-    const data = (await response.json()) as PlacesNearbyResponse;
-    const places = data.places ?? [];
-
-    const competitors: CompetitorItem[] = places
-      .filter((place): place is PlaceResult & { location: { latitude: number; longitude: number } } => {
-        return typeof place.location?.latitude === "number" && typeof place.location?.longitude === "number";
-      })
-      .map((place, index) => {
-        const distance = haversineDistance(lat, lng, place.location.latitude, place.location.longitude);
-        const name = place.displayName?.text ?? "이름 없음";
-
-        return {
-          name,
-          address: place.formattedAddress ?? "주소 정보 없음",
-          lat: place.location.latitude,
-          lng: place.location.longitude,
-          distance_m: Math.round(distance),
-          rating: typeof place.rating === "number" ? place.rating : null,
-          review_count: typeof place.userRatingCount === "number" ? place.userRatingCount : 0,
-          is_open: typeof place.regularOpeningHours?.openNow === "boolean" ? place.regularOpeningHours.openNow : null,
-          place_id: place.id ?? `unknown-${index}`,
-          type: classifyCompetitorType(name),
-        };
-      })
-      .sort((a, b) => a.distance_m - b.distance_m);
-
-    const payload: CompetitorsResponse = {
-      competitors,
-      total: competitors.length,
-    };
-
+    const competitors = await fetchCompetitorsFromCsv(lat, lng, industry, radius);
+    const payload: CompetitorsResponse = { competitors, total: competitors.length };
     return NextResponse.json(payload);
   } catch (error) {
     console.error("[competitors] Unexpected error", error);
