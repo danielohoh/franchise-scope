@@ -16,8 +16,8 @@ import type { CollectedData } from "@/types/database";
 type LLMProvider = "anthropic" | "openai" | "groq";
 
 function getProvider(provider: LLMProvider) {
-  const apiKey = process.env.LLM_API_KEY;
-  const model = process.env.LLM_MODEL;
+  const apiKey = process.env.LLM_API_KEY?.trim();
+  const model = process.env.LLM_MODEL?.trim();
 
   if (!apiKey) throw new Error("LLM_API_KEY 환경변수가 설정되지 않았습니다.");
   if (!model) throw new Error("LLM_MODEL 환경변수가 설정되지 않았습니다.");
@@ -55,7 +55,7 @@ export interface GenerateReportInput {
 }
 
 export async function generateReport(input: GenerateReportInput): Promise<ReportAnalysis> {
-  const providerName = (process.env.LLM_PROVIDER ?? "anthropic") as LLMProvider;
+  const providerName = (process.env.LLM_PROVIDER?.trim() ?? "anthropic") as LLMProvider;
   const llmModel = getProvider(providerName);
 
   const userPrompt = buildUserPrompt(
