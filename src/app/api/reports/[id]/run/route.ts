@@ -244,8 +244,10 @@ export async function POST(
 
     const admin = getAdminClient();
     const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-    const safeAddr = report.address.replace(/\s+/g, "_").slice(0, 40);
-    const fileName = `${reportId}_${dateStr}_${brand.brand_name}_${safeAddr}.docx`;
+    // ASCII-safe: 비 ASCII 문자(한글 포함) 제거 후 공백→_ 치환
+    const safeBrand = brand.brand_name.replace(/[^\x00-\x7F]/g, "").replace(/\s+/g, "_") || "brand";
+    const safeAddr = report.address.replace(/[^\x00-\x7F]/g, "").replace(/\s+/g, "_").slice(0, 40) || "address";
+    const fileName = `${reportId}_${dateStr}_${safeBrand}_${safeAddr}.docx`;
     const filePath = `${user.id}/${fileName}`;
 
     const { error: uploadError } = await admin.storage.from("reports").upload(filePath, docxBuffer, {

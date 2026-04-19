@@ -106,7 +106,7 @@ export const EvaluationResultSchema = z.object({
   growth: z.object({ score: z.number(), max: z.literal(10) }),
   brand_fit: z.object({ score: z.number(), max: z.literal(10) }),
   total: z.number().min(0).max(100).describe("총점 /100"),
-  grade: z.string().default("B").describe("등급: 90~100=A+, 80~89=A, 70~79=B+, 60~69=B, 50~59=C, 50미만=D"),
+  grade: z.string().describe("등급: 90~100=A+, 80~89=A, 70~79=B+, 60~69=B, 50~59=C, 50미만=D"),
 });
 
 export const CompetitorAlertSchema = z.object({

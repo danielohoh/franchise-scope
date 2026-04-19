@@ -1,28 +1,50 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Eye, EyeOff, LoaderCircle } from "lucide-react";
 
-import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-const completeSignupSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(2, "이름은 2자 이상이어야 합니다.")
-    .max(50, "이름은 50자 이하여야 합니다."),
-  companyName: z.string().trim().max(100, "회사명은 100자 이하여야 합니다.").optional(),
-});
+const schema = z
+  .object({
+    email: z.string().email("올바른 이메일을 입력해주세요."),
+    password: z
+      .string()
+      .min(8, "비밀번호는 8자 이상이어야 합니다.")
+      .regex(/[A-Za-z]/, "영문자를 포함해야 합니다.")
+      .regex(/[0-9]/, "숫자를 포함해야 합니다."),
+    confirmPassword: z.string().min(1, "비밀번호를 다시 입력해주세요."),
+    name: z.string().trim().min(2, "이름은 2자 이상이어야 합니다.").max(50, "이름은 50자 이하여야 합니다."),
+    companyName: z.string().trim().max(100, "회사명은 100자 이하여야 합니다.").optional(),
+  })
+  .refine((d) => d.password === d.confirmPassword, {
+    message: "비밀번호가 일치하지 않습니다.",
+    path: ["confirmPassword"],
+  });
 
-type CompleteSignupForm = z.infer<typeof completeSignupSchema>;
+type FormValues = z.infer<typeof schema>;
 
-function Spinner() {
-  return <span className="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />;
+function Field({
+  label,
+  error,
+  children,
+}: {
+  label: string;
+  error?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-2">
+      <label className="block text-sm font-medium text-slate-700">{label}</label>
+      {children}
+      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+    </div>
+  );
 }
 
 export default function SignupPage() {
@@ -30,142 +52,146 @@ export default function SignupPage() {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<CompleteSignupForm>({
-    resolver: zodResolver(completeSignupSchema),
-    defaultValues: {
-      name: "",
-      companyName: "",
-    },
+  } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: { email: "", password: "", confirmPassword: "", name: "", companyName: "" },
   });
 
-  const [submitError, setSubmitError] = useState<string>("");
-  const [sessionChecked, setSessionChecked] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
-  // 세션 없으면 로그인 페이지로 리다이렉트
-  useEffect(() => {
-    createClient().auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
-        window.location.assign("/auth/login");
-      } else {
-        setSessionChecked(true);
-      }
-    });
-  }, []);
-
-  const onSubmit = async (values: CompleteSignupForm) => {
+  const onSubmit = handleSubmit(async ({ email, password, name, companyName }) => {
     setSubmitError("");
-
     try {
-      const supabase = createClient();
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, name, companyName: companyName?.trim() || null }),
+      });
 
-      // 1) 현재 세션 확인
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
-        window.location.assign("/auth/login");
-        return;
-      }
+      const json = (await res.json()) as { error?: string };
 
-      const user = session.user;
-      // phone NOT NULL 우회: phone이 없거나 빈 문자열이면 UUID 앞 15자리 사용
-      const phone = user.phone || user.id.replace(/-/g, "").slice(0, 15);
-
-      // 2) 서버 API 경유 없이 클라이언트에서 직접 DB 저장
-      const { error } = await supabase.from("users").upsert(
-        {
-          id: user.id,
-          phone,
-          name: values.name.trim(),
-          email: user.email ?? null,
-          company_name: values.companyName?.trim() || null,
-          role: "user",
-          plan: "free",
-        },
-        { onConflict: "id" },
-      );
-
-      if (error) {
-        console.error("Signup upsert failed", error);
-        setSubmitError(error.message ?? "회원가입 정보를 저장하지 못했습니다.");
+      if (!res.ok) {
+        setSubmitError(json.error ?? "회원가입에 실패했습니다.");
         return;
       }
 
       window.location.assign("/dashboard/brand");
-    } catch (error) {
-      console.error("Signup completion failed", error);
+    } catch (err) {
+      console.error("[signup] error", err);
       setSubmitError("회원가입 처리 중 오류가 발생했습니다.");
     }
-  };
+  });
+
+  const inputClass = (hasError: boolean) =>
+    cn(
+      "h-11 w-full rounded-xl border px-3 text-sm outline-none transition",
+      "focus:border-[#1F4E79] focus:ring-2 focus:ring-[#1F4E79]/20",
+      hasError ? "border-red-400" : "border-slate-200",
+    );
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-8">
-      <section className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-bold text-[#1F4E79]">회원가입 완료</h1>
-        <p className="mt-2 text-sm text-slate-600">이름과 소속 정보를 입력해 계정을 활성화하세요.</p>
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10">
+      <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-[0_20px_80px_rgba(15,23,42,0.08)]">
+        <div className="mb-8 space-y-2 text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#1F4E79]/10 text-lg font-semibold text-[#1F4E79]">
+            FS
+          </div>
+          <h1 className="text-2xl font-semibold text-slate-900">회원가입</h1>
+          <p className="text-sm text-slate-500">FranchiseScope를 시작하세요.</p>
+        </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4">
-          <div className="space-y-2">
-            <label htmlFor="name" className="block text-sm font-medium text-slate-700">
-              이름
-            </label>
+        <form onSubmit={onSubmit} className="space-y-4">
+          <Field label="이메일" error={errors.email?.message}>
             <input
-              id="name"
+              {...register("email")}
+              type="email"
+              autoComplete="email"
+              placeholder="example@email.com"
+              className={inputClass(!!errors.email)}
+            />
+          </Field>
+
+          <Field label="비밀번호" error={errors.password?.message}>
+            <div className="relative">
+              <input
+                {...register("password")}
+                type={showPassword ? "text" : "password"}
+                autoComplete="new-password"
+                placeholder="영문+숫자 8자 이상"
+                className={cn(inputClass(!!errors.password), "pr-10")}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </div>
+          </Field>
+
+          <Field label="비밀번호 확인" error={errors.confirmPassword?.message}>
+            <div className="relative">
+              <input
+                {...register("confirmPassword")}
+                type={showConfirm ? "text" : "password"}
+                autoComplete="new-password"
+                placeholder="비밀번호 재입력"
+                className={cn(inputClass(!!errors.confirmPassword), "pr-10")}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirm((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                tabIndex={-1}
+              >
+                {showConfirm ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </div>
+          </Field>
+
+          <Field label="이름" error={errors.name?.message}>
+            <input
+              {...register("name")}
               type="text"
               placeholder="홍길동"
-              className={cn(
-                "h-11 w-full rounded-lg border px-3 text-sm outline-none transition",
-                "focus:border-[#1F4E79] focus:ring-2 focus:ring-[#1F4E79]/20",
-                errors.name ? "border-red-500" : "border-slate-300",
-              )}
-              {...register("name")}
+              className={inputClass(!!errors.name)}
             />
-            {errors.name?.message ? <p className="text-sm text-red-600">{errors.name.message}</p> : null}
-          </div>
+          </Field>
 
-          <div className="space-y-2">
-            <label htmlFor="companyName" className="block text-sm font-medium text-slate-700">
-              소속 회사명 (선택)
-            </label>
+          <Field label="소속 회사명 (선택)" error={errors.companyName?.message}>
             <input
-              id="companyName"
+              {...register("companyName")}
               type="text"
               placeholder="FranchiseScope"
-              className={cn(
-                "h-11 w-full rounded-lg border px-3 text-sm outline-none transition",
-                "focus:border-[#1F4E79] focus:ring-2 focus:ring-[#1F4E79]/20",
-                errors.companyName ? "border-red-500" : "border-slate-300",
-              )}
-              {...register("companyName")}
+              className={inputClass(!!errors.companyName)}
             />
-            {errors.companyName?.message ? (
-              <p className="text-sm text-red-600">{errors.companyName.message}</p>
-            ) : null}
-          </div>
+          </Field>
 
-          {submitError ? <p className="text-sm text-red-600">{submitError}</p> : null}
+          {submitError ? (
+            <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{submitError}</p>
+          ) : null}
 
           <Button
             type="submit"
-            disabled={isSubmitting || !sessionChecked}
-            className="h-11 w-full bg-[#1F4E79] hover:bg-[#193f62]"
+            disabled={isSubmitting}
+            className="h-11 w-full rounded-xl bg-[#1F4E79] text-white hover:bg-[#173a5b]"
           >
-            {isSubmitting ? (
-              <span className="inline-flex items-center gap-2">
-                <Spinner />
-                처리 중...
-              </span>
-            ) : (
-              "가입 완료"
-            )}
+            {isSubmitting ? <LoaderCircle className="size-4 animate-spin" /> : null}
+            회원가입
           </Button>
         </form>
 
         <p className="mt-6 text-center text-sm text-slate-500">
           이미 계정이 있으신가요?{" "}
-          <Link href="/auth/login" className="font-medium text-[#1F4E79] underline">
-            로그인으로 이동
+          <Link href="/auth/login" className="font-semibold text-[#1F4E79] underline-offset-4 hover:underline">
+            로그인
           </Link>
         </p>
-      </section>
-    </main>
+      </div>
+    </div>
   );
 }
