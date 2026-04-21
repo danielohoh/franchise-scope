@@ -1,8 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 
+import { PwaRegister } from "@/components/pwa-register";
 import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Geist({
@@ -20,6 +21,15 @@ export const metadata: Metadata = {
   description:
     "프랜차이즈 본사를 위한 AI 상권분석 SaaS. 주소 하나로 30초 만에 전문가급 상권분석 보고서를 자동 생성하세요.",
   metadataBase: new URL("https://ai-scope.kr"),
+  manifest: "/manifest.webmanifest",
+  // iOS PWA
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "FranchiseScope",
+  },
+  // Windows 타일
+  applicationName: "FranchiseScope",
   openGraph: {
     title: "FranchiseScope | AI 상권분석 자동화",
     description:
@@ -35,6 +45,15 @@ export const metadata: Metadata = {
     description:
       "주소 하나로 30초 만에 전문가급 상권분석 보고서를 자동 생성하세요.",
   },
+};
+
+// theme-color, viewport 별도 export (Next.js 권장)
+export const viewport: Viewport = {
+  themeColor: "#1F4E79",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({
@@ -54,6 +73,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-[#F8F9FA] text-foreground">
         {children}
         <Toaster />
+        <PwaRegister />
       </body>
     </html>
   );
