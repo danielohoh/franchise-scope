@@ -42,6 +42,125 @@ type ReportRecord = {
   llm_provider?: string | null;
 };
 
+// 위험도 정렬 우선순위 (낮을수록 위험)
+const RISK_ORDER: Record<string, number> = { 치명적: 0, 높음: 1, 보통: 2, 낮음: 3 };
+
+type CompetitorItem = ReportAnalysis["competitors"][number];
+
+function RiskBadge({ level }: { level: CompetitorItem["risk_level"] }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold",
+        level === "치명적"
+          ? "border-red-200 bg-red-50 text-red-700"
+          : level === "높음"
+            ? "border-orange-200 bg-orange-50 text-orange-800"
+            : level === "보통"
+              ? "border-gray-200 bg-gray-50 text-gray-700"
+              : "border-emerald-200 bg-emerald-50 text-emerald-700",
+      )}
+    >
+      {level}
+    </span>
+  );
+}
+
+function CompetitorTable({
+  title,
+  competitors,
+  emptyMessage,
+}: {
+  title: string;
+  competitors: CompetitorItem[];
+  emptyMessage: string;
+}) {
+  return (
+    <div>
+      <p className="mb-3 text-sm font-semibold text-gray-700">{title}</p>
+      <div className="overflow-x-auto rounded-xl border border-gray-100">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs font-semibold text-gray-600">
+              <th className="px-4 py-2.5">이름</th>
+              <th className="px-4 py-2.5">거리</th>
+              <th className="px-4 py-2.5">평점</th>
+              <th className="px-4 py-2.5">추정 월매출</th>
+              <th className="px-4 py-2.5">위험도</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-50">
+            {competitors.length === 0 ? (
+              <tr>
+                <td className="px-4 py-4 text-gray-400" colSpan={5}>
+                  {emptyMessage}
+                </td>
+              </tr>
+            ) : (
+              competitors.map((c) => (
+                <tr
+                  key={`${c.rank}-${c.name}`}
+                  className={
+                    c.risk_level === "치명적"
+                      ? "bg-red-50/50"
+                      : c.risk_level === "높음"
+                        ? "bg-orange-50/50"
+                        : ""
+                  }
+                >
+                  <td className="max-w-[260px] truncate px-4 py-3 font-semibold text-gray-900">{c.name}</td>
+                  <td className="px-4 py-3 text-gray-700">{formatNumber(Math.round(c.distance_m))}m</td>
+                  <td className="px-4 py-3 text-gray-700">{c.rating != null ? c.rating.toFixed(1) : "-"}</td>
+                  <td className="px-4 py-3 text-gray-700">{formatCurrency(c.estimated_monthly_revenue)}</td>
+                  <td className="px-4 py-3">
+                    <RiskBadge level={c.risk_level} />
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function CompetitorSection({ competitors }: { competitors: CompetitorItem[] }) {
+  const byRisk = (a: CompetitorItem, b: CompetitorItem) =>
+    (RISK_ORDER[a.risk_level] ?? 4) - (RISK_ORDER[b.risk_level] ?? 4);
+
+  const franchises = competitors
+    .filter((c) => c.type === "프랜차이즈")
+    .sort(byRisk)
+    .slice(0, 5);
+
+  const individuals = competitors
+    .filter((c) => c.type === "개인점")
+    .sort(byRisk)
+    .slice(0, 5);
+
+  return (
+    <section className="space-y-5 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+      <div>
+        <h2 className="text-base font-semibold text-gray-900">경쟁점 현황</h2>
+        <p className="mt-1 text-sm text-gray-500">
+          프랜차이즈·일반매장 각 최대 5개, 위험도 높은 순 · 추정 월매출 포함
+        </p>
+      </div>
+      <CompetitorTable
+        title="🏢 프랜차이즈 경쟁점"
+        competitors={franchises}
+        emptyMessage="프랜차이즈 경쟁점이 없습니다."
+      />
+      <CompetitorTable
+        title="🏪 일반매장 경쟁점"
+        competitors={individuals}
+        emptyMessage="일반매장 경쟁점이 없습니다."
+      />
+    </section>
+  );
+}
+
 const STATUS_UI: Record<ReportStatus, { step: 1 | 2 | 3 | 4 | 5; message: string }> = {
   pending: { step: 1, message: "📍 주소 분석 중..." },
   collecting: { step: 2, message: "🏘️ 상권 데이터 수집 중..." },
@@ -66,6 +185,20 @@ function formatNumber(value: number) {
 
 function formatCurrency(value: number) {
   return `${formatNumber(value)}원`;
+}
+
+/** 비용 구조 공식으로 월 영업이익 직접 계산 */
+function calcOperatingProfit(
+  monthlyRevenue: number,
+  costSim: ReportAnalysis["cost_simulation"],
+): number {
+  return (
+    monthlyRevenue
+    - Math.round(monthlyRevenue * costSim.supply_cost_rate)
+    - costSim.labor_and_rent
+    - Math.round(monthlyRevenue * costSim.delivery_commission_rate)
+    - costSim.royalty_and_others
+  );
 }
 
 function formatKst(dateIso: string) {
@@ -277,7 +410,8 @@ export default function ReportDetailPage() {
 
   const score = report.total_score ?? analysis?.evaluation.total ?? null;
   const recommendation = report.recommendation ?? analysis?.recommendation ?? null;
-  const alert = analysis?.alert ?? null;
+    const alert =
+      analysis?.alert?.alert_type && analysis.alert.alert_type !== "none" ? analysis.alert : null;
 
   return (
     <div className="space-y-6">
@@ -497,68 +631,40 @@ export default function ReportDetailPage() {
                 </div>
               </section>
 
+              {/* ── 입지 조건 ── */}
               <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
                 <div>
-                  <h2 className="text-base font-semibold text-gray-900">경쟁점 현황</h2>
-                  <p className="mt-1 text-sm text-gray-500">위험도가 높을수록 붉은 톤으로 강조됩니다.</p>
+                  <h2 className="text-base font-semibold text-gray-900">입지 조건</h2>
+                  <p className="mt-1 text-sm text-gray-500">보증금·임대료 등 임차 비용 정보</p>
                 </div>
 
-                <div className="mt-4 overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-gray-100 text-left text-xs font-semibold text-gray-600">
-                        <th className="py-2 pr-4">이름</th>
-                        <th className="py-2 pr-4">거리</th>
-                        <th className="py-2 pr-4">평점</th>
-                        <th className="py-2">위험도</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                      {analysis.competitors.length === 0 ? (
-                        <tr>
-                          <td className="py-4 text-gray-500" colSpan={4}>
-                            경쟁점 데이터가 없습니다.
-                          </td>
-                        </tr>
-                      ) : (
-                        analysis.competitors.map((c) => {
-                          const riskTone =
-                            c.risk_level === "치명적"
-                              ? "bg-red-50"
-                              : c.risk_level === "높음"
-                                ? "bg-orange-50"
-                                : "";
+                <div className="mt-4 grid gap-3 grid-cols-2 sm:grid-cols-4">
+                  {(
+                    [
+                      { label: "보증금", value: analysis.location_info.deposit },
+                      { label: "권리금", value: analysis.location_info.key_money },
+                      { label: "월 임대료", value: analysis.location_info.monthly_rent },
+                      { label: "관리비 (월)", value: analysis.location_info.maintenance_fee },
+                    ] as const
+                  ).map(({ label, value }) => (
+                    <div key={label} className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+                      <p className="text-xs font-semibold text-gray-500">{label}</p>
+                      <p className="mt-1 text-sm font-semibold text-gray-900">{formatCurrency(value)}</p>
+                    </div>
+                  ))}
+                </div>
 
-                          return (
-                            <tr key={`${c.rank}-${c.name}`} className={riskTone}>
-                              <td className="py-3 pr-4 font-semibold text-gray-900 max-w-[380px] truncate">{c.name}</td>
-                              <td className="py-3 pr-4 text-gray-700">{formatNumber(Math.round(c.distance_m))}m</td>
-                              <td className="py-3 pr-4 text-gray-700">{c.rating != null ? c.rating.toFixed(1) : "-"}</td>
-                              <td className="py-3 text-gray-700">
-                                <span
-                                  className={cn(
-                                    "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold",
-                                    c.risk_level === "치명적"
-                                      ? "border-red-200 bg-red-50 text-red-700"
-                                      : c.risk_level === "높음"
-                                        ? "border-orange-200 bg-orange-50 text-orange-800"
-                                        : c.risk_level === "보통"
-                                          ? "border-gray-200 bg-gray-50 text-gray-700"
-                                          : "border-emerald-200 bg-emerald-50 text-emerald-700",
-                                  )}
-                                >
-                                  {c.risk_level}
-                                </span>
-                              </td>
-                            </tr>
-                          );
-                        })
-                      )}
-                    </tbody>
-                  </table>
+                <div className="mt-3 flex items-center gap-1.5 rounded-xl bg-blue-50 px-3 py-2">
+                  <span className="text-xs text-blue-700">
+                    월 고정 임차비용: <strong>{formatCurrency(analysis.location_info.monthly_rent + analysis.location_info.maintenance_fee)}</strong>
+                    {" "}(임대료 + 관리비) · 추정 면적: <strong>{analysis.location_info.estimated_area_pyeong}평</strong>
+                  </span>
                 </div>
               </section>
 
+              <CompetitorSection competitors={analysis.competitors} />
+
+              {/* ── 매출 시뮬레이션 ── */}
               <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
                 <div>
                   <h2 className="text-base font-semibold text-gray-900">매출 시뮬레이션</h2>
@@ -584,12 +690,67 @@ export default function ReportDetailPage() {
                       </tr>
                       <tr>
                         <td className="py-3 pr-4 font-semibold text-gray-900">월영업이익</td>
-                        <td className="py-3 pr-4 text-gray-700">{formatCurrency(analysis.cost_simulation.monthly_operating_profit.conservative)}</td>
-                        <td className="py-3 pr-4 text-gray-900 font-semibold">{formatCurrency(analysis.cost_simulation.monthly_operating_profit.standard)}</td>
-                        <td className="py-3 text-gray-700">{formatCurrency(analysis.cost_simulation.monthly_operating_profit.optimistic)}</td>
+                        <td className="py-3 pr-4 text-gray-700">{formatCurrency(calcOperatingProfit(analysis.revenue_simulation.conservative.monthly_revenue, analysis.cost_simulation))}</td>
+                        <td className="py-3 pr-4 text-gray-900 font-semibold">{formatCurrency(calcOperatingProfit(analysis.revenue_simulation.standard.monthly_revenue, analysis.cost_simulation))}</td>
+                        <td className="py-3 text-gray-700">{formatCurrency(calcOperatingProfit(analysis.revenue_simulation.optimistic.monthly_revenue, analysis.cost_simulation))}</td>
                       </tr>
                     </tbody>
                   </table>
+                </div>
+
+                {/* ── 비용 구조 (기본 시나리오 기준) ── */}
+                <div className="mt-5">
+                  <p className="text-xs font-semibold text-gray-500 mb-3">비용 구조 상세 (기본 시나리오 기준)</p>
+                  <div className="overflow-x-auto rounded-xl border border-gray-100">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs font-semibold text-gray-600">
+                          <th className="px-4 py-2.5">비용 항목</th>
+                          <th className="px-4 py-2.5">산출 기준</th>
+                          <th className="px-4 py-2.5 text-right">금액</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        <tr>
+                          <td className="px-4 py-3 font-medium text-gray-900">공급원가</td>
+                          <td className="px-4 py-3 text-gray-500">월매출 × {Math.round(analysis.cost_simulation.supply_cost_rate * 100)}%</td>
+                          <td className="px-4 py-3 text-right text-gray-700">
+                            {formatCurrency(Math.round(analysis.revenue_simulation.standard.monthly_revenue * analysis.cost_simulation.supply_cost_rate))}
+                          </td>
+                        </tr>
+                        <tr className="bg-blue-50/60">
+                          <td className="px-4 py-3 font-medium text-gray-900">
+                            인건비 + 임대료
+                            <span className="ml-1.5 inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">임대 반영</span>
+                          </td>
+                          <td className="px-4 py-3 text-gray-500">
+                            고정비 — 임대료 {formatCurrency(analysis.location_info.monthly_rent)} + 관리비 {formatCurrency(analysis.location_info.maintenance_fee)} 포함
+                          </td>
+                          <td className="px-4 py-3 text-right font-semibold text-blue-700">{formatCurrency(analysis.cost_simulation.labor_and_rent)}</td>
+                        </tr>
+                        <tr>
+                          <td className="px-4 py-3 font-medium text-gray-900">배달 수수료</td>
+                          <td className="px-4 py-3 text-gray-500">월매출 × {Math.round(analysis.cost_simulation.delivery_commission_rate * 100)}%</td>
+                          <td className="px-4 py-3 text-right text-gray-700">
+                            {formatCurrency(Math.round(analysis.revenue_simulation.standard.monthly_revenue * analysis.cost_simulation.delivery_commission_rate))}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="px-4 py-3 font-medium text-gray-900">로열티 등 기타</td>
+                          <td className="px-4 py-3 text-gray-500">고정비</td>
+                          <td className="px-4 py-3 text-right text-gray-700">{formatCurrency(analysis.cost_simulation.royalty_and_others)}</td>
+                        </tr>
+                      </tbody>
+                      <tfoot>
+                        <tr className="border-t-2 border-gray-200 bg-gray-50">
+                          <td className="px-4 py-3 font-semibold text-gray-900" colSpan={2}>기본 시나리오 월영업이익</td>
+                          <td className="px-4 py-3 text-right font-bold text-emerald-700">
+                            {formatCurrency(calcOperatingProfit(analysis.revenue_simulation.standard.monthly_revenue, analysis.cost_simulation))}
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
                 </div>
               </section>
 

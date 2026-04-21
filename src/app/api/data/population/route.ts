@@ -104,21 +104,6 @@ function buildPopulationFromApi(payload: unknown): PopulationResponse | null {
   };
 }
 
-async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Response> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    return await fetch(url, {
-      method: "GET",
-      signal: controller.signal,
-      cache: "no-store",
-    });
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
 /**
  * CSV 데이터 기반으로 상권 유형을 추정한다.
  * mock 데이터 사용 시 실제 CSV 업종 분포를 반영하여 commercial_area_type을 보정한다.
@@ -176,9 +161,12 @@ export async function POST(request: Request) {
       cy: String(lat),
     });
 
-    const response = await fetchWithTimeout(
+    const response = await fetch(
       `https://apis.data.go.kr/B553077/api/open/sdsc2/storeListInRadius?${query.toString()}`,
-      5_000,
+      {
+        signal: AbortSignal.timeout(5_000),
+        cache: "no-store",
+      },
     );
 
     if (!response.ok) {

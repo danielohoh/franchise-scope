@@ -7,18 +7,15 @@ const geocodeRequestSchema = z.object({
   address: z.string().trim().min(1, "주소를 입력해 주세요."),
 });
 
-interface GoogleGeocodeResponse {
-  status: string;
-  results: Array<{
-    formatted_address: string;
-    geometry: {
-      location: {
-        lat: number;
-        lng: number;
-      };
-    };
+interface KakaoGeocodeResponse {
+  documents: Array<{
+    address_name: string;
+    x: string; // longitude
+    y: string; // latitude
+    address?: { address_name: string };
+    road_address?: { address_name: string } | null;
   }>;
-  error_message?: string;
+  meta: { total_count: number };
 }
 
 interface NominatimResult {
@@ -27,17 +24,40 @@ interface NominatimResult {
   display_name: string;
 }
 
-async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Response> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+/** Kakao Local API 지오코딩 — 한국 주소에 최적화 */
+async function geocodeWithKakao(address: string, apiKey: string): Promise<GeocodeResponse | null> {
   try {
-    return await fetch(url, {
-      method: "GET",
-      signal: controller.signal,
-      cache: "no-store",
-    });
-  } finally {
-    clearTimeout(timeout);
+    const params = new URLSearchParams({ query: address });
+
+    const response = await fetch(
+      `https://dapi.kakao.com/v2/local/search/address.json?${params.toString()}`,
+      {
+        headers: {
+          Authorization: `KakaoAK ${apiKey}`,
+        },
+        signal: AbortSignal.timeout(8_000),
+        cache: "no-store",
+      },
+    );
+
+    if (!response.ok) return null;
+
+    const data = (await response.json()) as KakaoGeocodeResponse;
+    if (!data.documents?.length) return null;
+
+    const first = data.documents[0];
+    const lat = parseFloat(first.y);
+    const lng = parseFloat(first.x);
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+
+    // 도로명 주소 우선, 없으면 지번 주소
+    const formattedAddress =
+      first.road_address?.address_name ?? first.address?.address_name ?? first.address_name;
+
+    return { lat, lng, formattedAddress };
+  } catch {
+    return null;
   }
 }
 
@@ -57,7 +77,7 @@ async function geocodeWithNominatim(address: string): Promise<GeocodeResponse | 
       {
         headers: {
           // Nominatim 사용 정책 필수 헤더
-          "User-Agent": "FranchiseScope/1.0 (franchise-scope@local)",
+          "User-Agent": "FranchiseScope/1.0 (ai-scope.kr)",
           "Accept-Language": "ko",
         },
         signal: AbortSignal.timeout(8_000),
@@ -82,37 +102,6 @@ async function geocodeWithNominatim(address: string): Promise<GeocodeResponse | 
   }
 }
 
-/** Google Geocoding API */
-async function geocodeWithGoogle(address: string, apiKey: string): Promise<GeocodeResponse | null> {
-  try {
-    const params = new URLSearchParams({
-      address,
-      language: "ko",
-      region: "KR",
-      key: apiKey,
-    });
-
-    const response = await fetchWithTimeout(
-      `https://maps.googleapis.com/maps/api/geocode/json?${params.toString()}`,
-      8_000,
-    );
-
-    if (!response.ok) return null;
-
-    const data = (await response.json()) as GoogleGeocodeResponse;
-    if (data.status !== "OK" || !data.results.length) return null;
-
-    const first = data.results[0];
-    return {
-      lat: first.geometry.location.lat,
-      lng: first.geometry.location.lng,
-      formattedAddress: first.formatted_address,
-    };
-  } catch {
-    return null;
-  }
-}
-
 export async function POST(request: Request) {
   try {
     const json = (await request.json()) as GeocodeRequest;
@@ -126,22 +115,22 @@ export async function POST(request: Request) {
     }
 
     const { address } = parsed.data;
-    const googleKey = process.env.GOOGLE_PLACES_API_KEY;
-    const hasGoogleKey = Boolean(googleKey) && googleKey !== "placeholder";
+    const kakaoKey = process.env.KAKAO_REST_API_KEY;
+    const hasKakaoKey = Boolean(kakaoKey) && kakaoKey !== "placeholder";
 
     let result: GeocodeResponse | null = null;
 
-    // 1) Google 우선 (유효한 키가 있을 때)
-    if (hasGoogleKey && googleKey) {
-      result = await geocodeWithGoogle(address, googleKey);
+    // 1) Kakao 우선 (유효한 키가 있을 때)
+    if (hasKakaoKey && kakaoKey) {
+      result = await geocodeWithKakao(address, kakaoKey);
       if (result) {
-        console.log("[geocode/google]", address, "→", result.lat, result.lng);
+        console.log("[geocode/kakao]", address, "→", result.lat, result.lng);
       } else {
-        console.warn("[geocode/google] 실패 → Nominatim 폴백");
+        console.warn("[geocode/kakao] 실패 → Nominatim 폴백");
       }
     }
 
-    // 2) Nominatim 폴백 (Google 없거나 실패 시)
+    // 2) Nominatim 폴백 (Kakao 없거나 실패 시)
     if (!result) {
       result = await geocodeWithNominatim(address);
       if (result) {

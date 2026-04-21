@@ -72,7 +72,6 @@ export async function generateReport(input: GenerateReportInput): Promise<Report
     system: SYSTEM_PROMPT,
     prompt: userPrompt,
     maxRetries: 3,
-
   });
 
   return object;

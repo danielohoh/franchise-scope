@@ -40,6 +40,24 @@ function safeErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
 }
 
+/** 숫자만 추출 */
+function digitsOnly(value: string): string {
+  return value.replace(/\D/g, "");
+}
+
+/** 천단위 콤마 포맷 */
+function formatNumberInput(value: string): string {
+  const digits = digitsOnly(value).replace(/^0+(?=\d)/, "");
+  if (!digits) return "";
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+/** 콤마 제거 후 숫자 반환, 빈 문자열이면 null */
+function parseManWon(value: string): number | null {
+  const digits = digitsOnly(value);
+  return digits ? Number(digits) : null;
+}
+
 function StepRow({
   index,
   label,
@@ -91,6 +109,12 @@ export default function NewReportPage() {
   const [prospectId, setProspectId] = useState<string | null>(initialProspectId);
   const [address, setAddress] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  // 임대 조건 입력 상태 (기본: 해당없음 체크 = AI 추정)
+  const [noPropertyInfo, setNoPropertyInfo] = useState(true);
+  const [depositManWon, setDepositManWon] = useState("");
+  const [monthlyRentManWon, setMonthlyRentManWon] = useState("");
+  const [maintenanceFeeManWon, setMaintenanceFeeManWon] = useState("");
 
   const [mode, setMode] = useState<"form" | "progress">("form");
   const [reportId, setReportId] = useState<string | null>(null);
@@ -264,8 +288,19 @@ export default function NewReportPage() {
                   const nextReportId = (generateJson as { report_id: string }).report_id;
                   setReportId(nextReportId);
 
-                  // fire-and-forget (await 없이 호출)
-                  void fetch(`/api/reports/${nextReportId}/run`, { method: "POST" }).catch((error) => {
+                  // fire-and-forget (await 없이 호출) — 임대 조건 포함
+                  const propertyPayload = noPropertyInfo
+                    ? null
+                    : {
+                        deposit: parseManWon(depositManWon),
+                        monthly_rent: parseManWon(monthlyRentManWon),
+                        maintenance_fee: parseManWon(maintenanceFeeManWon),
+                      };
+                  void fetch(`/api/reports/${nextReportId}/run`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ property: propertyPayload }),
+                  }).catch((error) => {
                     console.error("[reports/new] run trigger failed", error);
                   });
 
@@ -312,6 +347,57 @@ export default function NewReportPage() {
                 className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#1F4E79] disabled:bg-gray-50"
               />
             </div>
+
+            {/* 임대 조건 (선택) */}
+            <fieldset className="rounded-xl border border-gray-100 bg-gray-50/50 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <legend className="text-sm font-medium text-gray-700">임대 조건 <span className="text-gray-400 font-normal">(선택)</span></legend>
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-gray-600">
+                  <input
+                    type="checkbox"
+                    checked={noPropertyInfo}
+                    onChange={(e) => {
+                      setNoPropertyInfo(e.target.checked);
+                      if (e.target.checked) {
+                        setDepositManWon("");
+                        setMonthlyRentManWon("");
+                        setMaintenanceFeeManWon("");
+                      }
+                    }}
+                    disabled={submitting}
+                    className="size-4 rounded border-gray-300 accent-[#1F4E79]"
+                  />
+                  해당없음 (AI가 시세 추정)
+                </label>
+              </div>
+
+              <div className={cn("grid grid-cols-3 gap-3 transition-opacity duration-150", noPropertyInfo && "pointer-events-none opacity-40")}>
+                {(
+                  [
+                    { label: "보증금", value: depositManWon, setter: setDepositManWon },
+                    { label: "월 임대료", value: monthlyRentManWon, setter: setMonthlyRentManWon },
+                    { label: "관리비", value: maintenanceFeeManWon, setter: setMaintenanceFeeManWon },
+                  ] as const
+                ).map(({ label, value, setter }) => (
+                  <div key={label}>
+                    <label className="mb-1 block text-xs font-medium text-gray-600">{label}</label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={value}
+                        onChange={(e) => setter(formatNumberInput(e.target.value))}
+                        disabled={noPropertyInfo || submitting}
+                        placeholder="0"
+                        className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-3 pr-10 text-sm text-gray-900 placeholder-gray-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#1F4E79] disabled:bg-gray-50"
+                      />
+                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">만원</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-gray-500">미입력 항목은 AI가 상권 시세를 기준으로 추정합니다.</p>
+            </fieldset>
 
             <div className="flex items-center gap-3">
               <Button type="submit" disabled={submitting} className="rounded-xl px-5">

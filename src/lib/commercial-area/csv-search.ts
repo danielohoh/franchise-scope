@@ -206,7 +206,7 @@ function classifyCommercialAreaType(distribution: IndustryDistribution[]): Comme
 /**
  * 경쟁 밀도 계산
  */
-function computeCompetitionDensity(
+export function computeCompetitionDensity(
   totalShops: number,
   sameIndustryShops: number,
   radiusM: number,

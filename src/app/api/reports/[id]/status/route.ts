@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { Recommendation, ReportStatus } from "@/types/database";
 
@@ -11,14 +12,6 @@ const STATUS_STEPS: Record<ReportStatus, { step: number; message: string }> = {
   completed: { step: 5, message: "✅ 보고서 생성 완료!" },
   failed: { step: 0, message: "❌ 보고서 생성에 실패했습니다." },
 };
-
-interface ReportStatusResponse {
-  status: ReportStatus;
-  error_message: string | null;
-  recommendation: Recommendation | null;
-  total_score: number | null;
-  file_url: string | null;
-}
 
 export async function GET(
   _request: Request,
@@ -36,52 +29,33 @@ export async function GET(
       return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const admin = createAdminClient();
 
-    if (!supabaseUrl || !serviceRoleKey) {
-      return NextResponse.json({ error: "서버 환경변수가 설정되지 않았습니다." }, { status: 500 });
-    }
+    const { data: report, error } = await admin
+      .from("reports")
+      .select("status, error_message, recommendation, total_score, file_url")
+      .eq("id", reportId)
+      .eq("user_id", user.id)
+      .maybeSingle();
 
-    const searchParams = new URLSearchParams({
-      select: "status,error_message,recommendation,total_score,file_url",
-      id: `eq.${reportId}`,
-      user_id: `eq.${user.id}`,
-      limit: "1",
-    });
-
-    const response = await fetch(`${supabaseUrl}/rest/v1/reports?${searchParams.toString()}`, {
-      headers: {
-        apikey: serviceRoleKey,
-        Authorization: `Bearer ${serviceRoleKey}`,
-      },
-      cache: "no-store",
-    });
-
-    if (!response.ok) {
-      const responseText = await response.text();
-      console.error("[reports/status] Failed to fetch report", responseText);
+    if (error) {
+      console.error("[reports/status] Failed to fetch report", error);
       return NextResponse.json({ error: "보고서를 찾을 수 없습니다." }, { status: 404 });
     }
-
-    const reports = (await response.json()) as ReportStatusResponse[];
-    const report = reports[0];
 
     if (!report) {
       return NextResponse.json({ error: "보고서를 찾을 수 없습니다." }, { status: 404 });
     }
 
-    const statusInfo = STATUS_STEPS[report.status] ?? {
-      step: 0,
-      message: "알 수 없는 상태",
-    };
+    const status = report.status as ReportStatus;
+    const statusInfo = STATUS_STEPS[status] ?? { step: 0, message: "알 수 없는 상태" };
 
     return NextResponse.json({
-      status: report.status,
+      status,
       step: statusInfo.step,
       message: statusInfo.message,
       error_message: report.error_message,
-      recommendation: report.recommendation,
+      recommendation: report.recommendation as Recommendation | null,
       total_score: report.total_score,
       file_url: report.file_url,
     });

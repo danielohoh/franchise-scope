@@ -39,7 +39,7 @@ const FEATURES = [
     icon: Map,
     title: "경쟁점 실시간 분석",
     description:
-      "Google Maps 기반으로 반경 1km 내 동종업종을 자동 탐색하고 위험도를 평가합니다.",
+      "카카오맵 기반으로 반경 1km 내 동종업종을 자동 탐색하고 위험도를 평가합니다.",
     gradient: "from-emerald-500 to-teal-600",
   },
   {
@@ -86,7 +86,7 @@ const STEPS = [
     icon: BrainCircuit,
     title: "AI 자동 분석",
     description:
-      "AI가 공공데이터, Google Maps, 경쟁점 정보를 자동 수집하고 분석합니다. 약 30초 소요.",
+      "AI가 소상공인 공공데이터, 카카오맵, 경쟁점 정보를 자동 수집하고 분석합니다. 약 30초 소요.",
     iconBg: "bg-emerald-50 text-emerald-600",
   },
   {
@@ -114,7 +114,7 @@ const FAQS = [
   },
   {
     q: "상권 데이터는 어디서 가져오나요?",
-    a: "소상공인시장진흥공단 공공데이터(배후인구, 유동인구, 업종통계), Google Maps Places API(경쟁점 현황, 평점, 리뷰), Google Geocoding API(주소–위경도 변환)를 활용합니다.",
+    a: "소상공인시장진흥공단 공공데이터(배후인구, 유동인구, 업종통계), 카카오 로컬 API(경쟁점 현황, 주소–위경도 변환)를 활용합니다.",
   },
   {
     q: "생성된 보고서에는 어떤 내용이 포함되나요?",
@@ -838,7 +838,7 @@ export default function Home() {
               </div>
               <div>
                 <div className="font-semibold text-white/70 mb-3">기술 스택</div>
-                {["Next.js 16", "Supabase", "Claude AI", "Google Maps"].map(
+                {["Next.js 16", "Supabase", "Groq AI", "카카오맵"].map(
                   (item) => (
                     <div key={item} className="mt-2">
                       {item}

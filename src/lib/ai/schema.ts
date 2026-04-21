@@ -115,9 +115,9 @@ export function calcGrade(total: number): string {
 }
 
 export const CompetitorAlertSchema = z.object({
-  type: z.enum(["same_building_competitor", "nearby_competitor"]),
-  competitor_name: z.string(),
-  detail: z.string().describe("상세 설명 (주소, 영업시간 등)"),
+  alert_type: z.enum(["none", "same_building_competitor", "nearby_competitor"]).describe("경보 유형 — 경보 없으면 반드시 'none'"),
+  competitor_name: z.string().describe("경쟁점 이름 (경보 없으면 빈 문자열 '')"),
+  detail: z.string().describe("상세 설명 (경보 없으면 빈 문자열 '')"),
 });
 
 // ============================================
@@ -127,7 +127,7 @@ export const CompetitorAlertSchema = z.object({
 export const ReportAnalysisSchema = z.object({
   location_info: LocationInfoSchema,
   population: PopulationAnalysisSchema,
-  competitors: z.array(CompetitorAnalysisSchema).describe("경쟁점 분석 (최대 6개)"),
+  competitors: z.array(CompetitorAnalysisSchema).describe("경쟁점 분석 (최대 10개: 프랜차이즈 최대 5개 + 개인점 최대 5개, 각각 위험도 높은 순)"),
   revenue_simulation: z.object({
     conservative: RevenueScenarioSchema,
     standard: RevenueScenarioSchema,
@@ -143,7 +143,7 @@ export const ReportAnalysisSchema = z.object({
   recommendation_reason: z
     .string()
     .describe("권고 사유 (2~4문장, 핵심 근거 포함)"),
-  alert: CompetitorAlertSchema.nullable().describe("동일건물/극근접 경쟁점 경고 (없으면 null)"),
+  alert: CompetitorAlertSchema.describe("동일건물/극근접 경쟁점 경보 — 경보 없으면 type:'none', competitor_name:'', detail:''"),
 });
 
 export type ReportAnalysis = z.infer<typeof ReportAnalysisSchema>;

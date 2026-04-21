@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { mapBrandIndustryToMajor, mapBrandIndustryToSub, searchShops } from "@/lib/commercial-area/csv-search";
+import { computeCompetitionDensity, mapBrandIndustryToMajor, mapBrandIndustryToSub, searchShops } from "@/lib/commercial-area/csv-search";
 import type { CommercialAreaRequest, CommercialAreaResponse } from "@/types/api";
 
 const requestSchema = z.object({
@@ -44,38 +44,15 @@ export async function POST(request: Request) {
       return majorMatch && subMatch;
     }).length;
 
-    // 경쟁 밀도 재계산 (동종 업소 기준)
-    const areaSqKm = Math.PI * Math.pow(radius_m / 1000, 2);
-    const density = areaSqKm > 0 ? sameIndustryCount / areaSqKm : 0;
-
-    let score: number;
-    let level: "낮음" | "보통" | "높음" | "매우높음";
-
-    if (density < 5) {
-      score = Math.round((density / 5) * 25);
-      level = "낮음";
-    } else if (density < 15) {
-      score = Math.round(25 + ((density - 5) / 10) * 25);
-      level = "보통";
-    } else if (density < 30) {
-      score = Math.round(50 + ((density - 15) / 15) * 25);
-      level = "높음";
-    } else {
-      score = Math.min(100, Math.round(75 + ((density - 30) / 20) * 25));
-      level = "매우높음";
-    }
+    // 경쟁 밀도 계산 (동종 업소 기준)
+    const competitionDensity = computeCompetitionDensity(allResult.total, sameIndustryCount, radius_m);
 
     const response: CommercialAreaResponse = {
       shops: allResult.shops.slice(0, 100),
       total: allResult.total,
       industryDistribution: allResult.industryDistribution,
       commercialAreaType: allResult.commercialAreaType,
-      competitionDensity: {
-        score,
-        level,
-        sameIndustryCount,
-        totalShopCount: allResult.total,
-      },
+      competitionDensity,
       searchRadiusM: radius_m,
     };
 

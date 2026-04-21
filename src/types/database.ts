@@ -128,6 +128,13 @@ export type DbReport = {
 
 // ---- Collected Data (pipeline에서 수집하는 원본 데이터) ----
 
+/** 사용자가 직접 입력한 임대 조건 (원 단위). null = 미입력 → AI 추정 */
+export interface PropertyInput {
+  deposit: number | null;
+  monthly_rent: number | null;
+  maintenance_fee: number | null;
+}
+
 export interface CollectedData {
   geocode: {
     lat: number;
@@ -136,6 +143,8 @@ export interface CollectedData {
   };
   competitors: CompetitorRaw[];
   population: PopulationData;
+  /** 사용자 입력 임대 조건 (없으면 AI가 상권 시세로 추정) */
+  property?: PropertyInput;
 }
 
 export interface CompetitorRaw {

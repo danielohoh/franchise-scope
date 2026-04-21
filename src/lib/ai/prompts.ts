@@ -1,5 +1,4 @@
-import type { DbBrand } from "@/types/database";
-import type { CollectedData } from "@/types/database";
+import type { CollectedData, DbBrand } from "@/types/database";
 
 // ============================================
 // LLM 프롬프트 템플릿 (기획서 7-1 기반)
@@ -30,10 +29,10 @@ export function buildUserPrompt(
   collectedData: CollectedData
 ): string {
   const competitorSummary = collectedData.competitors
-    .slice(0, 6)
+    .slice(0, 10)
     .map(
       (c, i) =>
-        `${i + 1}. ${c.name} | 거리: ${c.distance_m}m | 평점: ${c.rating ?? "없음"} | 리뷰: ${c.review_count}건`
+        `${i + 1}. ${c.name} | 유형: ${c.type} | 거리: ${c.distance_m}m | 평점: ${c.rating ?? "없음"} | 리뷰: ${c.review_count}건`
     )
     .join("\n");
 
@@ -69,6 +68,22 @@ ${brand.min_store_requirement ? `개설 기준: ${brand.min_store_requirement}` 
 상권 유형: ${collectedData.population.commercial_area_type}
 ${collectedData.population.is_mock ? "(⚠️ 공공데이터 API 미연동 — 추정값 사용)" : ""}`;
 
+  // 임대 조건 지시문 분기
+  const property = collectedData.property;
+  const hasDeposit = property?.deposit != null;
+  const hasRent = property?.monthly_rent != null;
+  const hasMaintenance = property?.maintenance_fee != null;
+  const hasAnyProperty = hasDeposit || hasRent || hasMaintenance;
+
+  const propertyInstruction = hasAnyProperty
+    ? `- 아래는 사용자가 직접 입력한 실제 임대 조건입니다. location_info와 cost_simulation 계산에 반드시 정확히 사용하세요:
+${hasDeposit ? `  · 보증금: ${formatKRW(property!.deposit!)}` : ""}
+${hasRent ? `  · 월 임대료: ${formatKRW(property!.monthly_rent!)}` : ""}
+${hasMaintenance ? `  · 관리비: ${formatKRW(property!.maintenance_fee!)}` : ""}
+- 위에서 입력되지 않은 항목(key_money 등)은 상권 평균 시세로 추정합니다.
+- cost_simulation.labor_and_rent 계산 시 위 임대료+관리비를 인건비에 합산하여 반드시 반영하세요.`
+    : `- location_info의 deposit, monthly_rent, key_money, maintenance_fee는 분석 대상 상권의 평균 시세 기준으로 추정합니다.`;
+
   return `다음 데이터를 기반으로 상권분석 보고서를 작성해주세요.
 
 ${nearbyAlert}
@@ -88,10 +103,18 @@ ${competitorSummary || "경쟁점 없음"}
 
 [분석 요청]
 위 정보를 종합하여 입지 분석 보고서를 작성하세요.
-- location_info의 deposit, monthly_rent, key_money, maintenance_fee는 분석 대상 상권의 평균 시세 기준으로 추정합니다.
+${propertyInstruction}
 - revenue_simulation은 브랜드 데이터와 배후인구를 결합하여 현실적으로 추정합니다.
 - evaluation 각 항목의 score는 max를 초과할 수 없습니다.
-- total은 모든 항목 score의 합계여야 합니다.`;
+- total은 모든 항목 score의 합계여야 합니다.
+
+[경쟁점 분석 필수 지침]
+- 브랜드 업종(${brand.industry}${brand.sub_industry ? ` / ${brand.sub_industry}` : ""})과 직접 경쟁하는 업소만 선정합니다.
+- 각 경쟁점이 프랜차이즈(본사가 있는 체인 브랜드)인지 개인점인지는 **입력 데이터의 "유형" 값을 무시하고 당신의 지식으로 직접 판단**하세요. 입력 유형은 단순 키워드 매칭 결과로 부정확합니다.
+- 프랜차이즈 판단 기준: 전국 체인망을 가진 브랜드(푸라닭·굽네치킨·BBQ·교촌치킨·bhc·처갓집·네네치킨·60계치킨·노랑통닭·스타벅스·이디야 등). 이름 자체가 고유 로컬 상호이면 개인점.
+- 프랜차이즈 경쟁점 최대 5개, 개인점 최대 5개를 각각 위험도 높은 순(치명적→높음→보통→낮음)으로 정렬하여 총 최대 10개를 competitors 배열에 담습니다. 각 항목의 type 필드를 판단 결과("프랜차이즈" 또는 "개인점")로 반드시 올바르게 설정하세요.
+- 업종과 무관한 업소(예: 부동산, 편의점 등)는 제외합니다.
+- alert 필드: 동일 건물 또는 50m 이내 동종 경쟁점이 있으면 해당 type/competitor_name/detail을 채우고, 없으면 반드시 type:"none", competitor_name:"", detail:""로 설정하세요. 절대 생략 금지.`;
 }
 
 function formatKRW(amount: number): string {
