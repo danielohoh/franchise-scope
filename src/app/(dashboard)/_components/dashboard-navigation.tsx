@@ -17,6 +17,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { PwaInstallButton } from "@/components/pwa-install-button";
 import { cn } from "@/lib/utils";
 
 type BrandsGetResponse = {
@@ -154,8 +155,9 @@ export function DashboardSidebar({
           FranchiseScope
         </Link>
       </div>
-      <div className="px-3 pb-4">
+      <div className="px-3 pb-4 flex flex-col gap-1">
         <NavigationList hasBrand={hasBrand} />
+        <PwaInstallButton />
       </div>
       <UserFooter userName={userName} />
     </aside>
@@ -200,8 +202,9 @@ export function DashboardMobileTopbar({
             <SheetTitle>{title}</SheetTitle>
           </SheetHeader>
           <div className="flex h-full flex-col">
-            <div className="px-3 py-4">
+            <div className="px-3 py-4 flex flex-col gap-1">
               <NavigationList hasBrand={hasBrand} onNavigate={() => setOpen(false)} />
+              <PwaInstallButton />
             </div>
             <UserFooter userName={userName} />
           </div>
