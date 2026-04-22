@@ -123,6 +123,7 @@ export default function NewReportPage() {
 
   const pollIntervalRef = useRef<number | null>(null);
   const redirectTimeoutRef = useRef<number | null>(null);
+  const stuckTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     setProspectId(initialProspectId);
@@ -183,6 +184,8 @@ export default function NewReportPage() {
         if (nextStatus === "completed") {
           if (pollIntervalRef.current) window.clearInterval(pollIntervalRef.current);
           pollIntervalRef.current = null;
+          if (stuckTimeoutRef.current) window.clearTimeout(stuckTimeoutRef.current);
+          stuckTimeoutRef.current = null;
 
           if (redirectTimeoutRef.current) window.clearTimeout(redirectTimeoutRef.current);
           redirectTimeoutRef.current = window.setTimeout(() => {
@@ -193,6 +196,8 @@ export default function NewReportPage() {
         if (nextStatus === "failed") {
           if (pollIntervalRef.current) window.clearInterval(pollIntervalRef.current);
           pollIntervalRef.current = null;
+          if (stuckTimeoutRef.current) window.clearTimeout(stuckTimeoutRef.current);
+          stuckTimeoutRef.current = null;
         }
       } catch (error) {
         console.error("[reports/new] poll failed", error);
@@ -204,12 +209,24 @@ export default function NewReportPage() {
       void poll();
     }, 2000);
 
+    // 8분(480s) 동안 완료/실패가 없으면 타임아웃으로 처리
+    stuckTimeoutRef.current = window.setTimeout(() => {
+      if (pollIntervalRef.current) window.clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+      setStatus("failed");
+      setErrorMessage(
+        "보고서 생성에 시간이 너무 오래 걸려 타임아웃됐습니다. 다시 시도하거나, 잠시 후 보고서 목록에서 결과를 확인해주세요.",
+      );
+    }, 8 * 60 * 1000);
+
     return () => {
       cancelled = true;
       if (pollIntervalRef.current) window.clearInterval(pollIntervalRef.current);
       pollIntervalRef.current = null;
       if (redirectTimeoutRef.current) window.clearTimeout(redirectTimeoutRef.current);
       redirectTimeoutRef.current = null;
+      if (stuckTimeoutRef.current) window.clearTimeout(stuckTimeoutRef.current);
+      stuckTimeoutRef.current = null;
     };
   }, [reportId, router]);
 

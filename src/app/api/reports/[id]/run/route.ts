@@ -7,6 +7,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { CollectedData, Database, DbBrand, PropertyInput, ReportStatus } from "@/types/database";
 
+// App Router route segment config — Vercel Pro 300s, Hobby 60s 제한 적용
+export const maxDuration = 300;
+
 // ---- 임대 조건 body 스키마 (만원 단위, optional) ----
 const RunBodySchema = z.object({
   property: z
@@ -72,7 +75,7 @@ async function callDataApi<T>(endpoint: string, body: Record<string, unknown>): 
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(10_000),
+    signal: AbortSignal.timeout(25_000), // Vercel cold start 고려하여 25s
   });
 
   if (!response.ok) {
@@ -251,7 +254,9 @@ export async function POST(
     const { data: urlData } = admin.storage.from("reports").getPublicUrl(filePath);
     const generationTime = Math.round((Date.now() - startTime) / 1000);
 
-    await updateStatus(admin, reportId, "completed", {
+    // updateStatus 대신 updateReport 직접 사용 — 완료 상태 업데이트 실패 시 에러를 삼키지 않음
+    await updateReport(admin, reportId, {
+      status: "completed",
       file_url: urlData.publicUrl,
       file_name: fileName,
       generation_time_seconds: generationTime,
