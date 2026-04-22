@@ -10,7 +10,7 @@ const sendOtpSchema = z.object({
 
 const OTP_TTL_MS = 10 * 60 * 1000; // 10분
 
-export function signOtpToken(email: string, otp: string, expires: number): string {
+function signOtpToken(email: string, otp: string, expires: number): string {
   const secret = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
   const payload = `${email}:${otp}:${expires}`;
   const hmac = crypto.createHmac("sha256", secret).update(payload).digest("hex");

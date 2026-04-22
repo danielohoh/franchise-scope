@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 
 const schema = z.object({
   email: z.string().email("올바른 이메일을 입력해주세요."),
@@ -83,18 +82,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // 4) 생성한 계정으로 즉시 로그인 (세션 쿠키 설정)
-    const supabase = await createClient();
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-
-    if (signInError) {
-      console.error("[register] signIn 실패", signInError);
-      return NextResponse.json(
-        { error: "계정 생성은 완료됐으나 로그인에 실패했습니다. 로그인 페이지에서 다시 시도해주세요." },
-        { status: 500 },
-      );
-    }
-
+    // 4) 클라이언트 측에서 직접 로그인하도록 이메일/비밀번호는 이미 갖고 있음
+    //    서버에서 세션을 만들지 않고 success를 반환 → 브라우저가 직접 signInWithPassword 호출
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("[register] Unexpected error", error);

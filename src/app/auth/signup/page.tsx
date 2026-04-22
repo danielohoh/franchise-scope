@@ -9,6 +9,7 @@ import { Eye, EyeOff, LoaderCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
 
 const schema = z
   .object({
@@ -74,6 +75,17 @@ export default function SignupPage() {
 
       if (!res.ok) {
         setSubmitError(json.error ?? "회원가입에 실패했습니다.");
+        return;
+      }
+
+      // 계정 생성 성공 → 브라우저 Supabase 클라이언트로 직접 로그인
+      // (서버 경유 없이 브라우저 cookie store에 바로 저장 → race condition 없음)
+      const supabase = createClient();
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+
+      if (signInError) {
+        console.error("[signup] signIn 실패", signInError);
+        setSubmitError("계정 생성은 완료됐으나 로그인에 실패했습니다. 로그인 페이지에서 다시 시도해주세요.");
         return;
       }
 
