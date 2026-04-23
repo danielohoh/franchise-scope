@@ -126,7 +126,93 @@ ${propertyInstruction}
 - 피자·햄버거 프랜차이즈 (맥도날드·버거킹·도미노피자 등): 30,000,000~100,000,000 (평균 45,000,000~60,000,000)
 - 개인 치킨집·포장마차·소규모 음식점: 8,000,000~25,000,000
 - 보정 기준: 평점 4.3 이상이면 +20%, 리뷰 500건 이상이면 +10%, 거리 100m 이내이면 +10% 추가 적용
-- 주의: 단위는 반드시 "원(KRW)"이며 "만원" 단위가 아닙니다. 3,000만원 = 30,000,000 으로 입력.`;
+- 주의: 단위는 반드시 "원(KRW)"이며 "만원" 단위가 아닙니다. 3,000만원 = 30,000,000 으로 입력.
+
+[출력 JSON 구조 — 아래 구조를 정확히 따르세요. 필드명은 영문 그대로 사용하세요]
+{
+  "location_info": {
+    "candidate_name": "입지 후보 명칭 (예: 연수푸르지오1단지 상가)",
+    "address": "${address}",
+    "estimated_area_pyeong": 20,
+    "deposit": 10000000,
+    "monthly_rent": 1500000,
+    "key_money": 5000000,
+    "maintenance_fee": 200000
+  },
+  "population": {
+    "radius_500m": { "residential": 5000, "households": 2000, "workers": 1000 },
+    "radius_1km": { "residential": 15000, "households": 6000, "workers": 3000 },
+    "radius_2km": { "residential": 40000, "households": 16000, "workers": 8000 },
+    "core_age_group": "30~50대 62%",
+    "gender_ratio": "남 49% / 여 51%",
+    "commercial_area_type": "주거+역세권 복합",
+    "hourly_traffic": {
+      "morning": { "weekday": 800, "weekend": 400 },
+      "lunch": { "weekday": 1200, "weekend": 900 },
+      "afternoon": { "weekday": 600, "weekend": 700 },
+      "evening": { "weekday": 900, "weekend": 1100 },
+      "night": { "weekday": 700, "weekend": 800 }
+    }
+  },
+  "competitors": [
+    {
+      "rank": 1,
+      "name": "경쟁점명",
+      "distance_m": 350,
+      "type": "프랜차이즈",
+      "rating": 4.2,
+      "review_count": 150,
+      "estimated_monthly_revenue": 45000000,
+      "risk_level": "높음",
+      "note": "비고"
+    }
+  ],
+  "revenue_simulation": {
+    "conservative": { "daily_customers": 80, "avg_ticket": 18000, "daily_revenue": 1440000, "monthly_revenue": 43200000 },
+    "standard":     { "daily_customers": 120, "avg_ticket": 20000, "daily_revenue": 2400000, "monthly_revenue": 72000000 },
+    "optimistic":   { "daily_customers": 160, "avg_ticket": 22000, "daily_revenue": 3520000, "monthly_revenue": 105600000 }
+  },
+  "cost_simulation": {
+    "supply_cost_rate": 0.35,
+    "labor_and_rent": 8000000,
+    "delivery_commission_rate": 0.12,
+    "royalty_and_others": 2000000,
+    "monthly_operating_profit": { "conservative": 5000000, "standard": 12000000, "optimistic": 20000000 }
+  },
+  "investment": {
+    "items": [
+      { "name": "가맹비", "amount": 5000000 },
+      { "name": "교육비", "amount": 2000000 },
+      { "name": "보증금", "amount": 10000000 },
+      { "name": "인테리어", "amount": 30000000 },
+      { "name": "집기·비품", "amount": 10000000 }
+    ],
+    "total": 57000000,
+    "monthly_profit": 12000000,
+    "annual_profit": 144000000,
+    "payback_months": 5,
+    "annual_roi_percent": 25.3
+  },
+  "swot": {
+    "strengths": ["주거+역세권 복합 배후 인구 안정", "업종 적합 수요층 확보", "배달 권역 충분"],
+    "weaknesses": ["경쟁 프랜차이즈 다수 포진", "주차 공간 한계"],
+    "opportunities": ["신규 입주 세대 증가", "배달 수요 지속 성장"],
+    "threats": ["동일 업종 포화 가능성", "원재료 가격 상승"]
+  },
+  "evaluation": {
+    "location":      { "score": 75, "max": 100 },
+    "demand":        { "score": 80, "max": 100 },
+    "competition":   { "score": 65, "max": 100 },
+    "profitability": { "score": 70, "max": 100 },
+    "growth":        { "score": 75, "max": 100 },
+    "brand_fit":     { "score": 85, "max": 100 },
+    "total": 75
+  },
+  "recommendation": "조건부추천",
+  "recommendation_reason": "권고 사유를 2~4문장으로 작성",
+  "alert": { "alert_type": "none", "competitor_name": "", "detail": "" }
+}
+위 구조에서 숫자는 실제 분석값으로, 문자열은 실제 내용으로 교체하세요. 구조(필드명, 중첩 방식)는 그대로 유지하세요.`;
 }
 
 function formatKRW(amount: number): string {
