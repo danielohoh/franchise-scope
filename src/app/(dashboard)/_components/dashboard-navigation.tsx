@@ -8,6 +8,7 @@ import {
   FileText,
   LayoutDashboard,
   LogOut,
+  MapPin,
   Menu,
   Settings,
   Users,
@@ -40,6 +41,7 @@ const menuItems: ReadonlyArray<MenuItem> = [
   { label: "브랜드관리", href: "/dashboard/brand", Icon: Building2, gateKey: "none" },
   { label: "예비창업자", href: "/dashboard/prospects", Icon: Users, gateKey: "brand" },
   { label: "보고서", href: "/dashboard/reports", Icon: FileText, gateKey: "brand" },
+  { label: "AI 매물 추천", href: "/dashboard/recommend", Icon: MapPin, gateKey: "brand" },
   { label: "설정", href: "/dashboard/settings", Icon: Settings, gateKey: "brand" },
 ];
 

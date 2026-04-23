@@ -17,6 +17,24 @@
     },
     "src/app/api/data/population/route.ts": {
       "maxDuration": 10
+    },
+    "src/app/api/listings/collect/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/data/apartments/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/recommend/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/recommend/[id]/route.ts": {
+      "maxDuration": 15
+    },
+    "src/app/api/recommend/history/route.ts": {
+      "maxDuration": 10
+    },
+    "src/app/api/listings/collect-server/route.ts": {
+      "maxDuration": 300
     }
   }
 }

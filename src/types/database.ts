@@ -373,3 +373,32 @@ export interface Database {
 // Convenience aliases
 export type AppUser = DbUser;
 export type UserRecord = DbUser;
+
+// ---- New Tables: AI 매물 추천 기능 ----
+// (types/recommend.ts에서 전체 정의 — 여기서는 Database 스키마 확장만)
+
+export type DbNaverListingInsert = {
+  user_id: string;
+  article_id: string;
+  region_code: string;
+  region_name?: string | null;
+  trade_type: string;
+  article_name?: string | null;
+  building_name?: string | null;
+  detail_address?: string | null;
+  floor_info?: string | null;
+  area_supply?: number | null;
+  area_exclusive?: number | null;
+  deposit?: number | null;
+  monthly_rent?: number | null;
+  sale_price?: number | null;
+  maintenance_cost?: number | null;
+  building_use?: string | null;
+  parking_available?: boolean;
+  parking_count?: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  image_url?: string | null;
+  naver_url?: string | null;
+  raw_data?: Json;
+};
