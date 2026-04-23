@@ -64,9 +64,8 @@ export async function POST(request: Request) {
     if (conditions.tradeType !== "전체") {
       query = query.ilike("trade_type", `%${conditions.tradeType}%`);
     }
-    if (conditions.parkingRequired) {
-      query = query.eq("parking_available", true);
-    }
+    // 주차 조건은 DB 필터에서 제외: 직방 데이터에 주차 정보가 없어 parking_available = null
+    // 주차 조건은 matchListings 스코어링에서 처리됨
     if (conditions.minAreaPyeong) {
       query = query.gte("area_pyeong", conditions.minAreaPyeong);
     }
