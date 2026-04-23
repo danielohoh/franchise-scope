@@ -829,13 +829,28 @@ export default function ReportDetailPage() {
                         </tr>
                       ))}
                     </tbody>
-                    <tfoot>
-                      <tr className="border-t border-gray-100">
-                        <td className="py-3 pr-4 font-semibold text-gray-900">총점</td>
-                        <td className="py-3 pr-4 font-semibold text-gray-900">{analysis.evaluation.total}</td>
-                        <td className="py-3 text-gray-500">/ 100</td>
-                      </tr>
-                    </tfoot>
+                     <tfoot>
+                       <tr className="border-t border-gray-100">
+                         <td className="py-3 pr-4 font-semibold text-gray-900">총점</td>
+                         <td className="py-3 pr-4 font-semibold text-gray-900">
+                           {/* DB의 total_score를 우선 사용 (올바른 평균값).
+                               없으면 analysis의 total을 표시하되, 100 초과 시 6개 항목 평균으로 재계산 */}
+                           {report.total_score ??
+                             (analysis.evaluation.total > 100
+                               ? Math.round(
+                                   (analysis.evaluation.location.score +
+                                     analysis.evaluation.demand.score +
+                                     analysis.evaluation.competition.score +
+                                     analysis.evaluation.profitability.score +
+                                     analysis.evaluation.growth.score +
+                                     analysis.evaluation.brand_fit.score) /
+                                     6,
+                                 )
+                               : analysis.evaluation.total)}
+                         </td>
+                         <td className="py-3 text-gray-500">/ 100</td>
+                       </tr>
+                     </tfoot>
                   </table>
                 </div>
               </section>

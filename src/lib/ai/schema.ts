@@ -101,7 +101,7 @@ export const EvaluationResultSchema = z.object({
   profitability: z.object({ score: z.number(), max: z.number() }),
   growth: z.object({ score: z.number(), max: z.number() }),
   brand_fit: z.object({ score: z.number(), max: z.number() }),
-  total: z.number().describe("총점 /100 — 반드시 0~100 사이 값, 위 6개 항목 score 합계와 일치"),
+  total: z.number().describe("총점 /100 — 반드시 0~100 사이 정수, 위 6개 항목 score의 산술 평균 [(location.score + demand.score + competition.score + profitability.score + growth.score + brand_fit.score) ÷ 6]. 합계가 아닌 평균임에 주의."),
 });
 
 /** 총점에서 등급 자동 계산 */

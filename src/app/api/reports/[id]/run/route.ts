@@ -219,10 +219,25 @@ export async function POST(
       collectedData,
     });
 
+    // LLM이 total을 합계로 반환하는 경우를 방어: 서버에서 항상 6개 항목 평균으로 직접 계산
+    const ev = analysisResult.evaluation;
+    const computedTotal = Math.min(
+      100,
+      Math.max(
+        0,
+        Math.round(
+          (ev.location.score + ev.demand.score + ev.competition.score +
+            ev.profitability.score + ev.growth.score + ev.brand_fit.score) / 6,
+        ),
+      ),
+    );
+    // analysis_result에 저장되는 evaluation.total도 올바른 평균값으로 override
+    analysisResult.evaluation.total = computedTotal;
+
     await updateReport(admin, reportId, {
       analysis_result: analysisResult,
       recommendation: analysisResult.recommendation,
-      total_score: Math.min(100, Math.max(0, Math.round(analysisResult.evaluation.total))),
+      total_score: computedTotal,
       llm_provider: process.env.LLM_PROVIDER ?? "anthropic",
       llm_model: process.env.LLM_MODEL ?? "",
       status: "generating",
