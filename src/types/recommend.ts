@@ -25,7 +25,7 @@ export type DbNaverListing = {
   sale_price: number | null;
   maintenance_cost: number | null;
   building_use: string | null;
-  parking_available: boolean;
+  parking_available: boolean | null;
   parking_count: number | null;
   latitude: number | null;
   longitude: number | null;
@@ -125,8 +125,8 @@ export type NaverListingInput = {
   sale_price?: number | null;
   maintenance_cost?: number | null;
   building_use?: string;
-  parking_available?: boolean;
-  parking_count?: number;
+  parking_available?: boolean | null;
+  parking_count?: number | null;
   latitude?: number | null;
   longitude?: number | null;
   image_url?: string;
@@ -209,7 +209,9 @@ export type AptBasisInfo = {
   kaptCode: string;
   kaptName: string;
   kaptAddr: string;
-  kaptTotHo: string; // 총 세대수 (string)
+  kaptTotHo?: string; // 구 버전 필드
+  kaptdaCnt?: string; // 총 세대수 (V3)
+  kaptPkngCnt?: string; // 총 주차대수
   kaptDongCnt: string; // 동수
   kaptUseDate: string; // 사용승인일
   bjdCode: string; // 법정동코드
@@ -267,4 +269,63 @@ export type RecommendStoreState = {
   // 이력
   history: DbRecommendationResult[];
   setHistory: (history: DbRecommendationResult[]) => void;
+};
+
+// 공동주택 단지 목록 응답
+export type AptListItem = {
+  kaptCode: string;
+  kaptName: string;
+  bjdCode: string;
+};
+
+export type AptListResponse = {
+  response: {
+    header: { resultCode: string; resultMsg: string };
+    body: { items?: { item?: AptListItem | AptListItem[] }; totalCount: number };
+  };
+};
+
+// 건축물대장 총괄표제부
+export type BuildingRecapInfo = {
+  bldNm: string | null;
+  mainPurpsCdNm: string | null;
+  etcPurps: string | null;
+  totArea: string | null;
+  totPkngCnt: string | null;
+  hhldCnt: string | null;
+  useAprDay: string | null;
+  platPlc: string | null;
+  newPlatPlc: string | null;
+};
+
+// 건축물대장 층별개요
+export type BuildingFloorInfo = {
+  flrNo: string | null;
+  flrArea: string | null;
+  mainPurpsCdNm: string | null;
+  etcPurps: string | null;
+};
+
+export type BuildingResponse = {
+  recap: BuildingRecapInfo | null;
+  floors: BuildingFloorInfo[];
+  isNeighborhoodFacility: boolean;
+  parkingCount: number | null;
+};
+
+// 소상공인 상권정보
+export type StoreInfo = {
+  bizesNm: string | null;
+  indsLclsNm: string | null;
+  indsMclsNm: string | null;
+  indsSclsNm: string | null;
+  lnoAdr: string | null;
+  rdnmAdr: string | null;
+  lon: string | null;
+  lat: string | null;
+};
+
+export type StoresResponse = {
+  stores: StoreInfo[];
+  total: number;
 };

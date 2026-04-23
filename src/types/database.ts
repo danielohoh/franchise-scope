@@ -394,7 +394,7 @@ export type DbNaverListingInsert = {
   sale_price?: number | null;
   maintenance_cost?: number | null;
   building_use?: string | null;
-  parking_available?: boolean;
+  parking_available?: boolean | null;
   parking_count?: number | null;
   latitude?: number | null;
   longitude?: number | null;
