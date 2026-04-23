@@ -1,7 +1,7 @@
 // FranchiseScope Service Worker
 // 전략: 앱 셸 캐시 (Cache-first) + API 네트워크 우선 (Network-first)
 
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "v2";
 const CACHE_NAME = `franchise-scope-${CACHE_VERSION}`;
 
 // 앱 셸 — 오프라인에서도 즉시 로드
@@ -65,21 +65,42 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Next.js 빌드 정적 자산 (_next/static) — Cache-first (불변 파일)
+  // Next.js 정적 자산 (_next/static)
   if (url.pathname.startsWith("/_next/static/")) {
-    event.respondWith(
-      caches.match(request).then(
-        (cached) =>
-          cached ??
-          fetch(request).then((response) => {
+    // 앱 라우터 JS (chunks/app/)는 dev 모드에서 해시 없이 변경될 수 있어
+    // Network-first 전략 사용 — 항상 최신 코드를 로드하여 stale JS 방지
+    const isAppChunk =
+      url.pathname.includes("/_next/static/chunks/app/") ||
+      url.pathname.includes("/_next/static/chunks/pages/");
+
+    if (isAppChunk) {
+      event.respondWith(
+        fetch(request)
+          .then((response) => {
             if (response.ok) {
               const clone = response.clone();
               caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
             }
             return response;
-          }),
-      ),
-    );
+          })
+          .catch(() => caches.match(request)),
+      );
+    } else {
+      // 프레임워크 청크·미디어·폰트 등 불변 자산 — Cache-first
+      event.respondWith(
+        caches.match(request).then(
+          (cached) =>
+            cached ??
+            fetch(request).then((response) => {
+              if (response.ok) {
+                const clone = response.clone();
+                caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+              }
+              return response;
+            }),
+        ),
+      );
+    }
     return;
   }
 

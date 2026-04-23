@@ -18,9 +18,6 @@
     "src/app/api/data/population/route.ts": {
       "maxDuration": 10
     },
-    "src/app/api/listings/collect/route.ts": {
-      "maxDuration": 30
-    },
     "src/app/api/data/apartments/route.ts": {
       "maxDuration": 30
     },
