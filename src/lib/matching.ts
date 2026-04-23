@@ -65,7 +65,21 @@ export function matchListings(
           reasons.push(
             `반경 ${conditions.radiusMeters}m 내 ${result.total.toLocaleString()}세대 (조건 충족)`,
           );
+        } else if (result.total > 0) {
+          // 세대수가 기준보다 적어도 절반 이상이면 절반 점수
+          const ratio = result.total / conditions.minHouseholds;
+          if (ratio >= 0.5) {
+            const partial = Math.round(SCORE_HOUSEHOLDS * ratio);
+            score += partial;
+            reasons.push(
+              `반경 ${conditions.radiusMeters}m 내 ${result.total.toLocaleString()}세대 (부분 충족)`,
+            );
+          }
         }
+      } else {
+        // 좌표 없어 세대수 계산 불가 → 조건 미지정과 동일하게 만점 부여
+        score += SCORE_HOUSEHOLDS;
+        reasons.push("세대수 데이터 없음 (위치 미확인)");
       }
     } else {
       // 조건 미지정 시 만점
@@ -74,10 +88,15 @@ export function matchListings(
 
     // 3. 주차 가능 여부 (15점)
     if (conditions.parkingRequired) {
-      if (listing.parking_available) {
+      if (listing.parking_available === true) {
         score += SCORE_PARKING;
         reasons.push("주차 가능");
+      } else if (listing.parking_available === null) {
+        // 직방 데이터에 주차 정보 없음 → 절반 점수 부여
+        score += Math.round(SCORE_PARKING / 2);
+        reasons.push("주차 정보 미확인 (부분 점수)");
       }
+      // parking_available === false 면 0점
     } else {
       score += SCORE_PARKING;
     }
