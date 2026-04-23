@@ -66,6 +66,30 @@ export default function RootLayout({
       lang="ko"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      {/* ChunkLoadError 자동 복구: 배포 후 구버전 청크 404 → 1회 자동 새로고침 */}
+      <Script id="chunk-error-recovery" strategy="beforeInteractive">{`
+        (function() {
+          var RELOAD_KEY = '__chunk_reload__';
+          window.addEventListener('error', function(e) {
+            var msg = (e.message || '') + ((e.filename || ''));
+            if (msg.indexOf('Loading chunk') !== -1 || msg.indexOf('ChunkLoadError') !== -1 || (e.filename && e.filename.indexOf('/_next/static/chunks/') !== -1)) {
+              if (!sessionStorage.getItem(RELOAD_KEY)) {
+                sessionStorage.setItem(RELOAD_KEY, '1');
+                window.location.reload();
+              }
+            }
+          });
+          window.addEventListener('unhandledrejection', function(e) {
+            var msg = String((e.reason && e.reason.message) || e.reason || '');
+            if (msg.indexOf('Loading chunk') !== -1 || msg.indexOf('ChunkLoadError') !== -1) {
+              if (!sessionStorage.getItem(RELOAD_KEY)) {
+                sessionStorage.setItem(RELOAD_KEY, '1');
+                window.location.reload();
+              }
+            }
+          });
+        })();
+      `}</Script>
       <Script
         src={`https://dapi.kakao.com/v2/maps/sdk.js?appkey=${process.env.NEXT_PUBLIC_KAKAO_MAP_KEY}&libraries=services,clusterer&autoload=false`}
         strategy="afterInteractive"
