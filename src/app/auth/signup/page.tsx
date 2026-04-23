@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -49,6 +50,7 @@ function Field({
 }
 
 export default function SignupPage() {
+  const router = useRouter();
   const {
     register,
     handleSubmit,
@@ -79,7 +81,6 @@ export default function SignupPage() {
       }
 
       // 계정 생성 성공 → 브라우저 Supabase 클라이언트로 직접 로그인
-      // (서버 경유 없이 브라우저 cookie store에 바로 저장 → race condition 없음)
       const supabase = createClient();
       const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
 
@@ -89,7 +90,12 @@ export default function SignupPage() {
         return;
       }
 
-      window.location.assign("/dashboard/brand");
+      // window.location.assign() 대신 router.push() 사용:
+      // 하드 리로드 시 SSR 미들웨어가 세션 쿠키를 읽기 전에 auth 체크를 하는
+      // race condition이 발생해 ERR_FAILED ("사이트에 연결할 수 없습니다") 가 순간 노출됨.
+      // Next.js 클라이언트 사이드 RSC 네비게이션은 현재 쿠키를 포함한 fetch 요청을
+      // 보내므로 race condition 없이 안전하게 이동함.
+      router.push("/dashboard/brand");
     } catch (err) {
       console.error("[signup] error", err);
       setSubmitError("회원가입 처리 중 오류가 발생했습니다.");
