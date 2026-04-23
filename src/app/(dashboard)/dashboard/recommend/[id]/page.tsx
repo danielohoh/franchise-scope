@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { ArrowLeft, RefreshCcw } from "lucide-react";
 import { toast } from "sonner";
 
@@ -17,7 +16,6 @@ export const dynamic = "force-dynamic";
 type ApiError = { error?: string; message?: string };
 
 export default function RecommendDetailPage() {
-  const router = useRouter();
   const params = useParams<{ id: string }>();
   const id = params.id;
 
@@ -57,8 +55,7 @@ export default function RecommendDetailPage() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <Button type="button" variant="ghost" className="rounded-xl" onClick={() => router.push("/dashboard/recommend")}
-            >
+            <Button type="button" variant="ghost" className="rounded-xl" onClick={() => { window.location.href = "/dashboard/recommend"; }}>
               <ArrowLeft className="size-4" />
               돌아가기
             </Button>
@@ -67,12 +64,15 @@ export default function RecommendDetailPage() {
           <p className="text-sm text-muted-foreground">{result ? `"${result.prompt_text}"` : ""}</p>
         </div>
 
-        <Link href="/dashboard/recommend" className="shrink-0">
-          <Button type="button" variant="outline" className="rounded-xl">
-            <RefreshCcw className="size-4" />
-            조건 수정하여 재검색
-          </Button>
-        </Link>
+        <Button
+          type="button"
+          variant="outline"
+          className="shrink-0 rounded-xl"
+          onClick={() => { window.location.href = "/dashboard/recommend"; }}
+        >
+          <RefreshCcw className="size-4" />
+          조건 수정하여 재검색
+        </Button>
       </div>
 
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -111,7 +111,7 @@ export default function RecommendDetailPage() {
               <p className="mt-1 text-sm text-muted-foreground">조건을 수정해서 다시 검색해보세요.</p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="max-h-[420px] overflow-y-auto space-y-3 pr-1">
               {listings.map((listing, idx) => (
                 <ListingCard
                   key={listing.id}

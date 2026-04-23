@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -300,16 +300,13 @@ export function RegionSelector({
   selectedGugun: string;
   onChange: (sido: string, gugun: string, code: string) => void;
 }) {
-  // 로컬 state 사용: 부모 re-render 대기 없이 구/군 즉시 반영
-  const [localSido, setLocalSido] = useState(selectedSido || "");
-  const [localGugun, setLocalGugun] = useState(selectedGugun || "");
-
-  // 부모 prop 변경 시 동기화
-  useEffect(() => { setLocalSido(selectedSido || ""); }, [selectedSido]);
-  useEffect(() => { setLocalGugun(selectedGugun || ""); }, [selectedGugun]);
-
+  // ── props를 직접 사용 (local state 제거) ──────────────────────
+  // local state를 사용하면 hydration 에러 후 React가 컴포넌트 트리를
+  // 재생성할 때 state가 초기값으로 리셋되어 구/군 select가 disabled 상태로
+  // 남는 버그가 발생한다. Zustand store 값을 props로 받아 직접 사용하면
+  // hydration 복구 이후에도 Zustand 상태가 유지되어 버그가 해소된다.
   const sidoOptions = useMemo(() => Object.keys(REGIONS), []);
-  const gugunMap = useMemo(() => REGIONS[localSido] ?? {}, [localSido]);
+  const gugunMap = useMemo(() => REGIONS[selectedSido] ?? {}, [selectedSido]);
   const gugunOptions = useMemo(() => Object.keys(gugunMap), [gugunMap]);
 
   const selectClassName = cn(
@@ -324,11 +321,9 @@ export function RegionSelector({
         {/* 시/도 선택 */}
         <select
           className={selectClassName}
-          value={localSido}
+          value={selectedSido}
           onChange={(e) => {
             const nextSido = e.target.value;
-            setLocalSido(nextSido);
-            setLocalGugun("");
             if (!nextSido) {
               onChange("", "", "");
             } else {
@@ -342,20 +337,19 @@ export function RegionSelector({
           ))}
         </select>
 
-        {/* 구/군 선택 — localSido 기준으로 즉시 반영 */}
+        {/* 구/군 선택 */}
         <select
           className={selectClassName}
-          value={localGugun}
-          disabled={!localSido}
+          value={selectedGugun}
+          disabled={!selectedSido}
           onChange={(e) => {
             const nextGugun = e.target.value;
-            setLocalGugun(nextGugun);
-            if (!nextGugun || !localSido) {
-              onChange(localSido, "", "");
+            if (!nextGugun || !selectedSido) {
+              onChange(selectedSido, "", "");
               return;
             }
             const code = gugunMap[nextGugun] ?? "";
-            onChange(localSido, nextGugun, code);
+            onChange(selectedSido, nextGugun, code);
           }}
         >
           <option value="" disabled>구/군 선택</option>

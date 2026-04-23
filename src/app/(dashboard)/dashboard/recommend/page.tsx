@@ -75,7 +75,7 @@ export default function RecommendPage() {
 
   // ── 서버사이드 수집 (SSE 스트리밍) ──
   async function handleCollect() {
-    if (!regionCode) return;
+    if (!regionCode || !regionName) return;
 
     abortRef.current?.abort();
     const ctrl = new AbortController();
@@ -88,7 +88,7 @@ export default function RecommendPage() {
       const res = await fetch("/api/listings/collect-server", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ regionCode, tradeType: "" }),
+        body: JSON.stringify({ regionCode, regionName }),
         signal: ctrl.signal,
       });
 
@@ -193,7 +193,7 @@ export default function RecommendPage() {
           AI 매물 추천
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          지역을 선택하면 서버에서 네이버 부동산 매물을 자동 수집하고 AI가 최적 매물을 추천합니다.
+          지역을 선택하면 서버에서 직방 상가 매물을 자동 수집하고 AI가 최적 매물을 추천합니다.
         </p>
       </div>
 

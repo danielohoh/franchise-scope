@@ -53,9 +53,12 @@ export function ListingCard({
         ? `매매가 ${formatPrice(listing.sale_price)}`
         : `보증 ${formatPrice(listing.deposit)} / 월세 ${formatPrice(listing.monthly_rent)}`;
 
-  const parkingLabel = listing.parking_available
-    ? `주차 ${listing.parking_count != null ? `${listing.parking_count}대` : "가능"}`
-    : "주차 불가";
+  const parkingLabel =
+    listing.parking_available === true
+      ? `주차 ${listing.parking_count != null ? `${listing.parking_count}대` : "가능"}`
+      : listing.parking_available === false
+        ? "주차 불가"
+        : "주차 정보 미확인";
 
   return (
     <div
@@ -94,7 +97,7 @@ export function ListingCard({
           {parkingLabel}
           {listing.building_use ? ` | ${listing.building_use}` : null}
         </p>
-        {listing.nearbyHouseholds != null ? (
+        {listing.nearbyHouseholds != null && listing.nearbyHouseholds > 0 ? (
           <p className="mt-1 text-xs text-muted-foreground">
             주변 세대수: <span className="font-medium text-foreground">{listing.nearbyHouseholds.toLocaleString()}</span>세대
           </p>
@@ -117,7 +120,7 @@ export function ListingCard({
             disabled={!listing.naver_url}
           >
             <ExternalLink className="size-4" />
-            네이버 보기
+            부동산 매물 보기
           </Button>
         </a>
 
