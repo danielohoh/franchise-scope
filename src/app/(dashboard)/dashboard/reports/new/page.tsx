@@ -274,8 +274,10 @@ export default function NewReportPage() {
                 }
 
                 if (!brandId) {
-                  toast.error("브랜드 정보를 찾을 수 없습니다. 먼저 브랜드를 등록해주세요.");
-                  router.push("/dashboard/brand");
+                  // router.push()를 즉시 호출하면 toast가 렌더링되기 전에 페이지가
+                  // 이동하여 사용자가 안내 메시지를 볼 수 없음. 1.5초 후 이동.
+                  toast.error("보고서를 생성하려면 브랜드 정보를 먼저 등록해야 합니다. 브랜드 관리 페이지로 이동합니다.");
+                  setTimeout(() => router.push("/dashboard/brand"), 1500);
                   return;
                 }
 
