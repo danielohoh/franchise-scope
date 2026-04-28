@@ -13,7 +13,7 @@
 
 import { describe, it, expect } from "vitest";
 // Wave 4에서 export 키워드를 추가해야 이 import가 작동한다 (TDD RED 단계)
-import { buildSystemPrompt } from "@/app/api/consult/chat/route";
+import { buildSystemPrompt } from "@/lib/ai/consult-prompts";
 import type { Database } from "@/types/database";
 
 type BrandRow = Database["public"]["Tables"]["brands"]["Row"];
