@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ComponentProps } from "react";
+import { useEffect, useMemo, useState, type ChangeEvent, type ComponentProps } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -10,7 +10,7 @@ import { ChevronDown, LoaderCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { Database, Industry } from "@/types/database";
+import type { Database, DbKnowledgeDoc, Industry } from "@/types/database";
 
 type BrandRow = Database["public"]["Tables"]["brands"]["Row"];
 
@@ -303,6 +303,9 @@ export default function BrandPage() {
   const router = useRouter();
   const [brandId, setBrandId] = useState<string | null>(null);
   const [isPrefilling, setIsPrefilling] = useState(true);
+  const [knowledgeDocs, setKnowledgeDocs] = useState<DbKnowledgeDoc[]>([]);
+  const [isKnowledgeLoading, setIsKnowledgeLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   const {
     register,
@@ -422,6 +425,66 @@ export default function BrandPage() {
       cancelled = true;
     };
   }, [reset]);
+
+  const fetchKnowledgeDocs = async () => {
+    try {
+      setIsKnowledgeLoading(true);
+      const response = await fetch("/api/knowledge");
+      const json = (await response.json()) as { docs?: DbKnowledgeDoc[]; error?: string };
+      if (!response.ok) throw new Error(json.error ?? "FAQ 문서를 불러오지 못했습니다.");
+      setKnowledgeDocs(json.docs ?? []);
+    } catch (error) {
+      console.error("[brand page] fetchKnowledgeDocs failed", error);
+      toast.error(error instanceof Error ? error.message : "FAQ 문서를 불러오지 못했습니다.");
+    } finally {
+      setIsKnowledgeLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void fetchKnowledgeDocs();
+  }, []);
+
+  const handleUploadKnowledge = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/knowledge", {
+        method: "POST",
+        body: formData,
+      });
+
+      const json = (await response.json()) as { error?: string };
+      if (!response.ok) throw new Error(json.error ?? "문서 업로드에 실패했습니다.");
+
+      toast.success("FAQ 문서를 업로드했습니다.");
+      await fetchKnowledgeDocs();
+      event.target.value = "";
+    } catch (error) {
+      console.error("[brand page] handleUploadKnowledge failed", error);
+      toast.error(error instanceof Error ? error.message : "문서 업로드에 실패했습니다.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDeleteKnowledge = async (id: string) => {
+    try {
+      const response = await fetch(`/api/knowledge/${id}`, { method: "DELETE" });
+      const json = (await response.json()) as { error?: string };
+      if (!response.ok) throw new Error(json.error ?? "문서 삭제에 실패했습니다.");
+      toast.success("FAQ 문서를 삭제했습니다.");
+      await fetchKnowledgeDocs();
+    } catch (error) {
+      console.error("[brand page] handleDeleteKnowledge failed", error);
+      toast.error(error instanceof Error ? error.message : "문서 삭제에 실패했습니다.");
+    }
+  };
 
   const watchedIndustry = watch("industry");
 
@@ -808,6 +871,50 @@ export default function BrandPage() {
           </Button>
         </div>
       </form>
+
+      <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-base font-semibold text-foreground">AI 상담 지식베이스 (FAQ)</h2>
+            <p className="mt-1 text-sm text-muted-foreground">PDF/DOCX/TXT/MD 문서를 업로드하면 AI 상담에서 참고합니다.</p>
+          </div>
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-input px-3 py-2 text-sm hover:bg-muted">
+            {isUploading ? <LoaderCircle className="size-4 animate-spin" /> : null}
+            파일 업로드
+            <input
+              type="file"
+              accept=".pdf,.docx,.txt,.md"
+              className="hidden"
+              onChange={(event) => void handleUploadKnowledge(event)}
+              disabled={isUploading}
+            />
+          </label>
+        </div>
+
+        <div className="mt-4 rounded-xl border border-border">
+          {isKnowledgeLoading ? (
+            <div className="flex items-center gap-2 p-4 text-sm text-muted-foreground">
+              <LoaderCircle className="size-4 animate-spin" /> 불러오는 중...
+            </div>
+          ) : knowledgeDocs.length === 0 ? (
+            <p className="p-4 text-sm text-muted-foreground">업로드된 FAQ 문서가 없습니다.</p>
+          ) : (
+            <ul className="divide-y divide-border">
+              {knowledgeDocs.map((doc) => (
+                <li key={doc.id} className="flex items-center justify-between gap-3 p-3 text-sm">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium text-foreground">{doc.title}</p>
+                    <p className="text-xs text-muted-foreground">{new Date(doc.created_at).toLocaleString("ko-KR")}</p>
+                  </div>
+                  <Button type="button" variant="outline" size="sm" onClick={() => void handleDeleteKnowledge(doc.id)}>
+                    삭제
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </section>
     </div>
   );
 }

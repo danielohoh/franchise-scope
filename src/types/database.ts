@@ -360,6 +360,81 @@ export interface Database {
         };
         Relationships: [];
       };
+      consultation_links: {
+        Row: DbConsultationLink;
+        Insert: {
+          id?: string;
+          user_id: string;
+          brand_id: string;
+          token?: string;
+          label?: string | null;
+          expires_at?: string | null;
+          status?: ConsultationLinkStatus;
+          created_at?: string;
+        };
+        Update: {
+          label?: string | null;
+          expires_at?: string | null;
+          status?: ConsultationLinkStatus;
+        };
+        Relationships: [];
+      };
+      consultation_sessions: {
+        Row: DbConsultationSession;
+        Insert: {
+          id?: string;
+          link_id: string;
+          prospect_id?: string | null;
+          contact_name?: string | null;
+          contact_phone?: string | null;
+          started_at?: string;
+          last_active_at?: string;
+          extracted_data?: Json;
+          status?: ConsultationSessionStatus;
+          callback_requested?: boolean;
+          callback_preferred_time?: string | null;
+        };
+        Update: {
+          prospect_id?: string | null;
+          contact_name?: string | null;
+          contact_phone?: string | null;
+          last_active_at?: string;
+          extracted_data?: Json;
+          status?: ConsultationSessionStatus;
+          callback_requested?: boolean;
+          callback_preferred_time?: string | null;
+        };
+        Relationships: [];
+      };
+      chat_messages: {
+        Row: DbChatMessage;
+        Insert: {
+          id?: string;
+          session_id: string;
+          role: ChatRole;
+          content: string;
+          created_at?: string;
+        };
+        Update: Record<string, never>;
+        Relationships: [];
+      };
+      knowledge_docs: {
+        Row: DbKnowledgeDoc;
+        Insert: {
+          id?: string;
+          brand_id: string;
+          user_id: string;
+          title: string;
+          content: string;
+          file_name?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          title?: string;
+          content?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -371,6 +446,66 @@ export interface Database {
 // Convenience aliases
 export type AppUser = DbUser;
 export type UserRecord = DbUser;
+
+// ---- New Types: AI 창업 상담 기능 ----
+
+export type ConsultationLinkStatus = "active" | "expired" | "closed";
+export type ConsultationSessionStatus = "active" | "completed";
+export type ChatRole = "user" | "assistant";
+
+export type DbConsultationLink = {
+  id: string;
+  user_id: string;
+  brand_id: string;
+  token: string;
+  label: string | null;
+  expires_at: string | null;
+  status: ConsultationLinkStatus;
+  created_at: string;
+};
+
+export type DbConsultationSession = {
+  id: string;
+  link_id: string;
+  prospect_id: string | null;
+  contact_name: string | null;
+  contact_phone: string | null;
+  started_at: string;
+  last_active_at: string;
+  extracted_data: Json;
+  status: ConsultationSessionStatus;
+  callback_requested: boolean;
+  callback_preferred_time: string | null;
+};
+
+export type DbChatMessage = {
+  id: string;
+  session_id: string;
+  role: ChatRole;
+  content: string;
+  created_at: string;
+};
+
+export type DbKnowledgeDoc = {
+  id: string;
+  brand_id: string;
+  user_id: string;
+  title: string;
+  content: string;
+  file_name: string | null;
+  created_at: string;
+};
+
+/** AI가 대화에서 추출하는 구조화 정보 */
+export type ExtractedProspectData = {
+  name?: string;
+  phone?: string;
+  preferred_region?: string;
+  investment_budget?: number;
+  experience?: string;
+  readiness_level?: "초기탐색" | "진지검토" | "계약의향";
+  key_questions?: string[];
+};
 
 // ---- New Tables: AI 매물 추천 기능 ----
 // (types/recommend.ts에서 전체 정의 — 여기서는 Database 스키마 확장만)

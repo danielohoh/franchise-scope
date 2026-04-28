@@ -1,4 +1,5 @@
 import type { CollectedData, DbBrand } from "@/types/database";
+import { getIndustryBenchmark } from "@/lib/data/industry-benchmarks";
 
 // ============================================
 // LLM 프롬프트 템플릿 (기획서 7-1 기반)
@@ -84,6 +85,109 @@ ${hasMaintenance ? `  · 관리비: ${formatKRW(property!.maintenance_fee!)}` : 
 - cost_simulation.labor_and_rent 계산 시 위 임대료+관리비를 인건비에 합산하여 반드시 반영하세요.`
     : `- location_info의 deposit, monthly_rent, key_money, maintenance_fee는 분석 대상 상권의 평균 시세 기준으로 추정합니다.`;
 
+  // 업종별 기준 일매출 (15~20평 단독 매장, 전국 평균 중간 상권 기준)
+  const INDUSTRY_BASE_DAILY: Record<string, { conservative: number; standard: number; optimistic: number }> = {
+    치킨:       { conservative: 900_000,   standard: 1_350_000, optimistic: 1_900_000 },
+    카페:       { conservative: 700_000,   standard: 1_050_000, optimistic: 1_600_000 },
+    한식:       { conservative: 600_000,   standard:   900_000, optimistic: 1_350_000 },
+    분식:       { conservative: 380_000,   standard:   620_000, optimistic: 1_000_000 },
+    "피자·햄버거": { conservative: 750_000,  standard: 1_200_000, optimistic: 1_800_000 },
+    편의점:     { conservative: 1_200_000, standard: 2_000_000, optimistic: 3_200_000 },
+    서비스업:   { conservative: 350_000,   standard:   580_000, optimistic:   900_000 },
+    기타:       { conservative: 350_000,   standard:   580_000, optimistic:   900_000 },
+  };
+
+  const industryBase = INDUSTRY_BASE_DAILY[brand.industry] ?? INDUSTRY_BASE_DAILY["기타"];
+
+  // 면적 보정 계수
+  const areaP = brand.avg_store_size_pyeong ?? 20;
+  const areaMult =
+    areaP <= 10 ? 0.65 :
+    areaP <= 15 ? 0.80 :
+    areaP <= 25 ? 1.00 :
+    areaP <= 40 ? 1.20 : 1.40;
+
+  // 경쟁점 조정 계수
+  const compCount = collectedData.public_competition?.is_real
+    ? collectedData.public_competition.same_industry_500m
+    : collectedData.competitors.length;
+  const hasNearby50m = collectedData.competitors.some((c) => c.distance_m <= 50);
+  const industryBenchmark = getIndustryBenchmark(brand.industry, brand.sub_industry);
+  const compMult =
+    hasNearby50m  ? 0.45 :
+    compCount === 0 ? 1.00 :
+    compCount <= 2  ? 0.88 :
+    compCount <= 5  ? 0.73 :
+    compCount <= 9  ? 0.60 : 0.45;
+
+  // 배후 인구 보정 계수 (500m 주거인구 기준)
+  const resid500 = collectedData.population.radius_500m.residential;
+  const work500  = collectedData.population.radius_500m.workers;
+  const popMult =
+    resid500 >= 15_000 ? 1.15 :
+    resid500 >= 8_000  ? 1.05 :
+    resid500 >= 4_000  ? 1.00 :
+    resid500 >= 2_000  ? 0.88 : 0.75;
+  // 직장인구 보너스 (외식·카페 업종만)
+  const workBonus =
+    ["치킨", "카페", "한식", "분식", "피자·햄버거"].includes(brand.industry) &&
+    work500 >= 3_000
+      ? 1.05
+      : 1.00;
+
+  // 브랜드에 자사 평균 월매출이 있으면 기본 일매출 앵커로 사용 (30% 가중)
+  let anchorAdj = 1.00;
+  if (brand.avg_monthly_revenue && brand.avg_monthly_revenue > 0) {
+    const brandBaseStdDaily = brand.avg_monthly_revenue / 30;
+    const calcStdDaily = industryBase.standard * areaMult;
+    // 브랜드 데이터와 산출값의 평균으로 앵커 보정
+    anchorAdj = (brandBaseStdDaily / calcStdDaily) * 0.30 + 1.00 * 0.70;
+    // 너무 극단적인 보정 방지 (0.6~1.6 클리핑)
+    anchorAdj = Math.min(1.6, Math.max(0.6, anchorAdj));
+  }
+
+  const finalMult = areaMult * compMult * popMult * workBonus * anchorAdj;
+
+  const calcDaily = {
+    conservative: Math.round(industryBase.conservative * finalMult),
+    standard:     Math.round(industryBase.standard     * finalMult),
+    optimistic:   Math.round(industryBase.optimistic   * finalMult),
+  };
+
+  // 업종별 현실 avg_ticket 범위 (중간값 사용)
+  const INDUSTRY_AVG_TICKET: Record<string, number> = {
+    치킨:       28_000,
+    카페:       8_000,
+    한식:       12_000,
+    분식:       8_000,
+    "피자·햄버거": 18_000,
+    편의점:     8_000,
+    서비스업:   12_000,
+    기타:       11_000,
+  };
+  const avgTicket = brand.avg_ticket_price ?? INDUSTRY_AVG_TICKET[brand.industry] ?? 12_000;
+
+  const revenueExample = {
+    conservative: {
+      daily_customers: Math.round(calcDaily.conservative / avgTicket),
+      avg_ticket: avgTicket,
+      daily_revenue: calcDaily.conservative,
+      monthly_revenue: calcDaily.conservative * 30,
+    },
+    standard: {
+      daily_customers: Math.round(calcDaily.standard / avgTicket),
+      avg_ticket: avgTicket,
+      daily_revenue: calcDaily.standard,
+      monthly_revenue: calcDaily.standard * 30,
+    },
+    optimistic: {
+      daily_customers: Math.round(calcDaily.optimistic / avgTicket),
+      avg_ticket: avgTicket,
+      daily_revenue: calcDaily.optimistic,
+      monthly_revenue: calcDaily.optimistic * 30,
+    },
+  };
+
   return `다음 데이터를 기반으로 상권분석 보고서를 작성해주세요.
 
 ${nearbyAlert}
@@ -100,13 +204,36 @@ ${populationInfo}
 
 [주변 경쟁점 현황] (총 ${collectedData.competitors.length}개 발견)
 ${competitorSummary || "경쟁점 없음"}
+${collectedData.public_competition?.is_real
+  ? `[공공데이터 기반 반경 500m 경쟁 현황]
+동종 업종 점포 수: ${collectedData.public_competition.same_industry_500m}개
+전체 점포 수: ${collectedData.public_competition.total_stores_500m}개
+※ 이 수치가 Google Places 경쟁점 수보다 더 정확합니다.`
+  : ""}
 
 [분석 요청]
 위 정보를 종합하여 입지 분석 보고서를 작성하세요.
 ${propertyInstruction}
-- revenue_simulation은 브랜드 데이터와 배후인구를 결합하여 현실적으로 추정합니다.
 - evaluation 각 항목의 score는 max를 초과할 수 없습니다.
 - total은 6개 항목(location·demand·competition·profitability·growth·brand_fit) score의 산술 평균이며, 반드시 0~100 사이의 정수여야 합니다. (합계가 아닌 평균: 예시 → 각 항목이 80,70,60,80,70,90이면 total = (80+70+60+80+70+90)÷6 = 75)
+
+[매출 시뮬레이션 — 서버 사전계산 결과 (반드시 이 값을 기반으로 ±10% 이내로 조정)]
+아래 값은 업종·면적·경쟁점 수·배후인구를 단계별 공식으로 산출한 서버 계산값입니다.
+JSON의 revenue_simulation은 이 값을 기준으로 ±10% 이내에서 조정하세요. 임의로 2배 이상 높이거나 낮추면 안 됩니다.
+
+계산 근거:
+- 업종(${brand.industry}) 기준 일매출: 보수 ${industryBase.conservative.toLocaleString()}원 / 기본 ${industryBase.standard.toLocaleString()}원 / 낙관 ${industryBase.optimistic.toLocaleString()}원
+- STEP 1 참고(업종 벤치마크): ${industryBenchmark ? `${industryBenchmark.sub_label} 전국 평균 월매출 ${industryBenchmark.avg_monthly_revenue.toLocaleString()}원 (중앙값 ${industryBenchmark.median_monthly_revenue.toLocaleString()}원)` : "해당 없음"}
+- 면적 보정(${areaP}평): × ${areaMult.toFixed(2)}
+- 경쟁 보정(${compCount}개${hasNearby50m ? ", 50m 이내 경쟁점 있음" : ""}): × ${compMult.toFixed(2)}
+- 인구 보정(500m 주거 ${resid500.toLocaleString()}명 / 직장 ${work500.toLocaleString()}명): × ${(popMult * workBonus).toFixed(2)}${brand.avg_monthly_revenue ? `\n- 브랜드 자사 평균 반영: × ${anchorAdj.toFixed(2)}` : ""}
+
+서버 산출 revenue_simulation:
+보수적: 일매출 ${calcDaily.conservative.toLocaleString()}원 / 월매출 ${(calcDaily.conservative * 30).toLocaleString()}원 / 일 고객 ${revenueExample.conservative.daily_customers}명 (avg_ticket ${avgTicket.toLocaleString()}원)
+기본:   일매출 ${calcDaily.standard.toLocaleString()}원 / 월매출 ${(calcDaily.standard * 30).toLocaleString()}원 / 일 고객 ${revenueExample.standard.daily_customers}명
+낙관적: 일매출 ${calcDaily.optimistic.toLocaleString()}원 / 월매출 ${(calcDaily.optimistic * 30).toLocaleString()}원 / 일 고객 ${revenueExample.optimistic.daily_customers}명
+
+※ 상권 특수 요인(역세권 특수, 관광지, 대학가 등)이 명확히 있으면 낙관 방향으로 ±10% 조정 가능. 그 외에는 서버 계산값 그대로 사용.
 
 [경쟁점 분석 필수 지침]
 - 브랜드 업종(${brand.industry}${brand.sub_industry ? ` / ${brand.sub_industry}` : ""})과 직접 경쟁하는 업소만 선정합니다.
@@ -168,9 +295,9 @@ ${propertyInstruction}
     }
   ],
   "revenue_simulation": {
-    "conservative": { "daily_customers": 80, "avg_ticket": 18000, "daily_revenue": 1440000, "monthly_revenue": 43200000 },
-    "standard":     { "daily_customers": 120, "avg_ticket": 20000, "daily_revenue": 2400000, "monthly_revenue": 72000000 },
-    "optimistic":   { "daily_customers": 160, "avg_ticket": 22000, "daily_revenue": 3520000, "monthly_revenue": 105600000 }
+    "conservative": { "daily_customers": ${revenueExample.conservative.daily_customers}, "avg_ticket": ${revenueExample.conservative.avg_ticket}, "daily_revenue": ${revenueExample.conservative.daily_revenue}, "monthly_revenue": ${revenueExample.conservative.monthly_revenue} },
+    "standard":     { "daily_customers": ${revenueExample.standard.daily_customers},     "avg_ticket": ${revenueExample.standard.avg_ticket},     "daily_revenue": ${revenueExample.standard.daily_revenue},     "monthly_revenue": ${revenueExample.standard.monthly_revenue}     },
+    "optimistic":   { "daily_customers": ${revenueExample.optimistic.daily_customers},   "avg_ticket": ${revenueExample.optimistic.avg_ticket},   "daily_revenue": ${revenueExample.optimistic.daily_revenue},   "monthly_revenue": ${revenueExample.optimistic.monthly_revenue}   }
   },
   "cost_simulation": {
     "supply_cost_rate": 0.35,

@@ -119,6 +119,7 @@ export default function RecommendDetailPage() {
                   rank={idx + 1}
                   isSelected={listing.id === selectedId}
                   onSelect={(l) => setSelectedId(l.id)}
+                  recommendationId={id}
                 />
               ))}
             </div>

@@ -203,12 +203,17 @@ function repairAnalysis(raw: unknown): unknown {
     const buildScenario = (monthlyRevenue: number, multiplier: number) => {
       const monthly = Math.round(monthlyRevenue * multiplier);
       const daily = Math.round(monthly / 30);
-      const ticket = 20000;
+      // avg_ticket이 시나리오에 이미 있으면 사용, 없으면 12,000원 기본값 (업종 불명 시 보수적 추정)
+      const existingTicket =
+        typeof (rev[multiplier === 0.7 ? "conservative" : multiplier === 1.0 ? "standard" : "optimistic"] as Record<string, unknown>)?.avg_ticket === "number"
+          ? (rev[multiplier === 0.7 ? "conservative" : multiplier === 1.0 ? "standard" : "optimistic"] as Record<string, unknown>).avg_ticket as number
+          : 12_000;
+      const ticket = existingTicket > 0 ? existingTicket : 12_000;
       return { daily_customers: Math.round(daily / ticket), avg_ticket: ticket, daily_revenue: daily, monthly_revenue: monthly };
     };
     const refMonthly = toNum(
       (rev.standard as Record<string, unknown>)?.monthly_revenue ?? rev.standard,
-      50000000
+      20000000
     );
     for (const [key, mult] of [["conservative", 0.7], ["standard", 1.0], ["optimistic", 1.4]] as const) {
       const s = rev[key];

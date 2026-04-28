@@ -1,6 +1,7 @@
 "use client";
 
 import { ExternalLink, BarChart3 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -36,12 +37,15 @@ export function ListingCard({
   rank,
   onSelect,
   isSelected,
+  recommendationId,
 }: {
   listing: MatchedListing;
   rank: number;
   onSelect: (listing: MatchedListing) => void;
   isSelected: boolean;
+  recommendationId: string;
 }) {
+  const router = useRouter();
   const score = Math.max(0, Math.min(100, listing.matchScore));
   const title = getTitle(listing);
 
@@ -130,7 +134,7 @@ export function ListingCard({
           className="rounded-xl"
           onClick={(e) => {
             e.stopPropagation();
-            onSelect(listing);
+            router.push(`/dashboard/recommend/${recommendationId}/analysis/${listing.id}`);
           }}
         >
           <BarChart3 className="size-4" />

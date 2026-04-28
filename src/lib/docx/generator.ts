@@ -417,6 +417,23 @@ function buildRevenueSection(analysis: ReportAnalysis): (Paragraph | Table)[] {
           ),
         ],
       }),
+      ...(analysis.industry_benchmark
+        ? [
+            new TableRow({
+              children: [
+                lCell(`${analysis.industry_benchmark.sub_label} 전국평균`, 25),
+                cell("-", { align: "CENTER", width: 25 }),
+                cell(formatKRW(analysis.industry_benchmark.avg_monthly_revenue), {
+                  align: "RIGHT",
+                  width: 25,
+                  bold: false,
+                  bg: "F0F4FF",
+                }),
+                cell("-", { align: "CENTER", width: 25 }),
+              ],
+            }),
+          ]
+        : []),
     ],
   });
 
@@ -478,6 +495,22 @@ function buildRevenueSection(analysis: ReportAnalysis): (Paragraph | Table)[] {
 
   return [
     simTable,
+    ...(analysis.industry_benchmark
+      ? [
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: `※ 전국 평균: ${analysis.industry_benchmark.source} 기준. 실제 매출은 입지, 영업력에 따라 크게 차이가 있습니다.`,
+                size: 16,
+                color: "888888",
+                italics: true,
+                font: FONTS.ko,
+              }),
+            ],
+            spacing: { before: 60 },
+          }),
+        ]
+      : []),
     gap(12),
     para("비용 구조 상세 (기본 시나리오 기준)", {
       bold: true,

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { generateReport } from "@/lib/ai/generate";
+import { getIndustryBenchmark } from "@/lib/data/industry-benchmarks";
+import { fetchPublicCompetition } from "@/lib/data/public-competition";
 import { generateDocx } from "@/lib/docx/generator";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -158,7 +160,7 @@ export async function POST(
       status: "collecting",
     });
 
-    const [competitorsResult, populationResult] = await Promise.allSettled([
+    const [competitorsResult, populationResult, publicCompResult] = await Promise.allSettled([
       callDataApi<{ competitors: CollectedData["competitors"] }>("/api/data/competitors", {
         lat: geocodeData.lat,
         lng: geocodeData.lng,
@@ -169,6 +171,7 @@ export async function POST(
         lat: geocodeData.lat,
         lng: geocodeData.lng,
       }),
+      fetchPublicCompetition(geocodeData.lat, geocodeData.lng, brand.industry),
     ]);
 
     const competitors =
@@ -194,6 +197,11 @@ export async function POST(
             is_mock: true,
           };
 
+    const publicComp =
+      publicCompResult.status === "fulfilled"
+        ? publicCompResult.value
+        : { same_industry_500m: 0, total_stores_500m: 0, is_real: false };
+
     const collectedData: CollectedData = {
       geocode: {
         lat: geocodeData.lat,
@@ -202,6 +210,7 @@ export async function POST(
       },
       competitors,
       population,
+      public_competition: publicComp,
       ...(propertyInput !== undefined ? { property: propertyInput } : {}),
     };
 
@@ -218,6 +227,11 @@ export async function POST(
       lng: geocodeData.lng,
       collectedData,
     });
+
+    const benchmark = getIndustryBenchmark(brand.industry, brand.sub_industry);
+    if (benchmark) {
+      analysisResult.industry_benchmark = benchmark;
+    }
 
     // LLM이 total을 합계로 반환하는 경우를 방어: 서버에서 항상 6개 항목 평균으로 직접 계산
     const ev = analysisResult.evaluation;

@@ -137,6 +137,13 @@ export const ReportAnalysisSchema = z.object({
   investment: InvestmentSchema,
   swot: SWOTSchema,
   evaluation: EvaluationResultSchema,
+  industry_benchmark: z.object({
+    industry: z.string(),
+    sub_label: z.string(),
+    avg_monthly_revenue: z.number(),
+    median_monthly_revenue: z.number(),
+    source: z.string(),
+  }).optional().describe("업종별 전국 평균 월매출 벤치마크"),
   recommendation: z
     .enum(["적극추천", "조건부추천", "재검토필요", "반려"])
     .describe("최종 권고 의견"),

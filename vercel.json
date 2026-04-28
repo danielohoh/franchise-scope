@@ -32,6 +32,24 @@
     },
     "src/app/api/listings/collect-server/route.ts": {
       "maxDuration": 300
+    },
+    "src/app/api/consult/chat/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/consult/start/route.ts": {
+      "maxDuration": 15
+    },
+    "src/app/api/consult/callback/route.ts": {
+      "maxDuration": 10
+    },
+    "src/app/api/consultations/links/route.ts": {
+      "maxDuration": 10
+    },
+    "src/app/api/consultations/sessions/[id]/route.ts": {
+      "maxDuration": 10
+    },
+    "src/app/api/knowledge/route.ts": {
+      "maxDuration": 30
     }
   }
 }

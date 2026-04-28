@@ -30,78 +30,109 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-function toNumber(value: unknown): number | null {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value;
-  }
-
+function toNumber(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
   if (typeof value === "string") {
     const parsed = Number(value.replace(/,/g, ""));
-    return Number.isFinite(parsed) ? parsed : null;
+    return Number.isFinite(parsed) ? parsed : 0;
   }
-
-  return null;
+  return 0;
 }
 
-function readFromRecord(record: Record<string, unknown>, keys: string[]): number | null {
-  for (const key of keys) {
-    const value = toNumber(record[key]);
-    if (value !== null) {
-      return value;
-    }
-  }
-
-  return null;
-}
-
-function buildPopulationFromApi(payload: unknown): PopulationResponse | null {
-  if (!isRecord(payload)) {
-    return null;
-  }
+function normalizeStoreItems(payload: unknown): { totalCount: number; items: Record<string, unknown>[] } {
+  if (!isRecord(payload)) return { totalCount: 0, items: [] };
 
   const body = isRecord(payload.body) ? payload.body : payload;
-  const items = isRecord(body.items) ? body.items : body;
-  const item = Array.isArray(items.item) ? items.item[0] : items.item;
+  const totalCount = toNumber(body.totalCount);
+  const itemsRaw = isRecord(body.items) ? body.items : null;
 
-  if (!isRecord(item)) {
-    return null;
+  if (!itemsRaw) return { totalCount, items: [] };
+  if (Array.isArray(itemsRaw.item)) return { totalCount, items: itemsRaw.item.filter(isRecord) };
+  if (isRecord(itemsRaw.item)) return { totalCount, items: [itemsRaw.item] };
+
+  return { totalCount, items: [] };
+}
+
+function classifyCommercialAreaByStoreDistribution(items: Record<string, unknown>[]): string {
+  if (items.length === 0) return MOCK_POPULATION.commercial_area_type;
+
+  let food = 0;
+  let retail = 0;
+  let realestate = 0;
+  let living = 0;
+  let office = 0;
+
+  for (const item of items) {
+    const category = String(item.indsLclsNm ?? "");
+    if (category.includes("음식")) food += 1;
+    else if (category.includes("소매")) retail += 1;
+    else if (category.includes("부동산")) realestate += 1;
+    else if (category.includes("생활서비스")) living += 1;
+    else if (category.includes("시설관리") || category.includes("과학") || category.includes("전문")) office += 1;
   }
 
-  const residential500 = readFromRecord(item, ["residential500", "residential_500m", "residential"]);
-  const households500 = readFromRecord(item, ["households500", "households_500m", "households"]);
-  const workers500 = readFromRecord(item, ["workers500", "workers_500m", "workers"]);
+  const total = Math.max(1, items.length);
+  const foodRatio = food / total;
+  const retailRatio = retail / total;
+  const residentialRatio = (realestate + living) / total;
+  const officeRatio = office / total;
 
-  if (residential500 === null || households500 === null || workers500 === null) {
-    return null;
+  if (foodRatio >= 0.45) return "상업 중심 상권";
+  if (officeRatio >= 0.25 && foodRatio >= 0.2) return "오피스+상업 복합";
+  if (residentialRatio >= 0.35) return "주거생활 밀착 상권";
+  if (retailRatio >= 0.35) return "생활소매 중심 상권";
+  return "주거+상업 혼합 상권";
+}
+
+function adjustHourlyTrafficByStoreDistribution(
+  base: PopulationResponse["hourly_traffic"],
+  totalCount: number,
+  commercialAreaType: string,
+): PopulationResponse["hourly_traffic"] {
+  const densityMult = Math.min(1.35, Math.max(0.8, 0.85 + totalCount / 220));
+
+  const profileMult: Record<keyof PopulationResponse["hourly_traffic"], { weekday: number; weekend: number }> =
+    commercialAreaType.includes("상업")
+      ? {
+          morning: { weekday: 1.0, weekend: 0.9 },
+          lunch: { weekday: 1.15, weekend: 1.05 },
+          afternoon: { weekday: 1.05, weekend: 1.1 },
+          evening: { weekday: 1.2, weekend: 1.2 },
+          night: { weekday: 1.15, weekend: 1.2 },
+        }
+      : commercialAreaType.includes("주거")
+        ? {
+            morning: { weekday: 0.95, weekend: 1.05 },
+            lunch: { weekday: 0.95, weekend: 1.0 },
+            afternoon: { weekday: 0.95, weekend: 1.1 },
+            evening: { weekday: 1.05, weekend: 1.15 },
+            night: { weekday: 0.95, weekend: 1.05 },
+          }
+        : {
+            morning: { weekday: 1.0, weekend: 1.0 },
+            lunch: { weekday: 1.05, weekend: 1.0 },
+            afternoon: { weekday: 1.0, weekend: 1.05 },
+            evening: { weekday: 1.1, weekend: 1.1 },
+            night: { weekday: 1.0, weekend: 1.05 },
+          };
+
+  const next = { ...base };
+  const timeKeys: Array<keyof PopulationResponse["hourly_traffic"]> = [
+    "morning",
+    "lunch",
+    "afternoon",
+    "evening",
+    "night",
+  ];
+
+  for (const key of timeKeys) {
+    next[key] = {
+      weekday: Math.round(base[key].weekday * densityMult * profileMult[key].weekday),
+      weekend: Math.round(base[key].weekend * densityMult * profileMult[key].weekend),
+    };
   }
 
-  return {
-    radius_500m: {
-      residential: Math.round(residential500),
-      households: Math.round(households500),
-      workers: Math.round(workers500),
-    },
-    radius_1km: {
-      residential: Math.round(residential500 * 3.2),
-      households: Math.round(households500 * 3.6),
-      workers: Math.round(workers500 * 2.3),
-    },
-    radius_2km: {
-      residential: Math.round(residential500 * 8.4),
-      households: Math.round(households500 * 8.9),
-      workers: Math.round(workers500 * 5.4),
-    },
-    core_age_group: "30~50대 중심",
-    gender_ratio: "남녀 비율 균형",
-    commercial_area_type: "생활밀착형 상권",
-    hourly_traffic: {
-      morning: { weekday: Math.round(workers500 * 0.6), weekend: Math.round(workers500 * 0.3) },
-      lunch: { weekday: Math.round(workers500 * 1.1), weekend: Math.round(workers500 * 0.9) },
-      afternoon: { weekday: Math.round(workers500 * 0.8), weekend: Math.round(workers500 * 0.9) },
-      evening: { weekday: Math.round(workers500 * 1.3), weekend: Math.round(workers500 * 1.2) },
-      night: { weekday: Math.round(workers500 * 0.5), weekend: Math.round(workers500 * 0.4) },
-    },
-  };
+  return next;
 }
 
 /**
@@ -146,9 +177,9 @@ export async function POST(request: Request) {
 
     const { lat, lng } = parsed.data;
 
-    const apiKey = process.env.PUBLIC_DATA_API_KEY;
+    const apiKey = process.env.DATA_GO_KR_API_KEY;
     if (!apiKey || apiKey === "placeholder") {
-      console.info("[population] PUBLIC_DATA_API_KEY 없음 → mock + CSV 상권타입 사용");
+      console.info("[population] DATA_GO_KR_API_KEY 없음 → mock + CSV 상권타입 사용");
       const enriched = await enrichWithCsvData(MOCK_POPULATION, lat, lng);
       return NextResponse.json(enriched);
     }
@@ -156,15 +187,16 @@ export async function POST(request: Request) {
     const query = new URLSearchParams({
       serviceKey: apiKey,
       type: "json",
-      radius: "2000",
+      radius: "500",
+      numOfRows: "200",
       cx: String(lng),
       cy: String(lat),
     });
 
     const response = await fetch(
-      `https://apis.data.go.kr/B553077/api/open/sdsc2/storeListInRadius?${query.toString()}`,
+        `https://apis.data.go.kr/B553077/api/open/sdsc2/storeListInRadius?${query.toString()}`,
       {
-        signal: AbortSignal.timeout(5_000),
+        signal: AbortSignal.timeout(8_000),
         cache: "no-store",
       },
     );
@@ -177,16 +209,20 @@ export async function POST(request: Request) {
     }
 
     const data = (await response.json()) as unknown;
-    const normalized = buildPopulationFromApi(data);
+    const normalized = normalizeStoreItems(data);
+    const commercialAreaType = classifyCommercialAreaByStoreDistribution(normalized.items);
 
-    if (!normalized) {
-      console.error("[population] Failed to normalize public data API response. Using mock data.");
-      const enriched = await enrichWithCsvData(MOCK_POPULATION, lat, lng);
-      return NextResponse.json(enriched);
-    }
+    const enriched: PopulationResponse = {
+      ...MOCK_POPULATION,
+      commercial_area_type: commercialAreaType,
+      hourly_traffic: adjustHourlyTrafficByStoreDistribution(
+        MOCK_POPULATION.hourly_traffic,
+        normalized.totalCount,
+        commercialAreaType,
+      ),
+      is_mock: true,
+    };
 
-    // 공공 API 성공 시에도 CSV로 상권 유형 보정
-    const enriched = await enrichWithCsvData(normalized, lat, lng);
     return NextResponse.json(enriched);
   } catch (error) {
     console.error("[population] Unexpected error", error);
