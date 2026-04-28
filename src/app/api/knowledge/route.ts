@@ -15,7 +15,9 @@ async function extractTextFromFile(file: File) {
   }
 
   if (name.endsWith(".pdf")) {
-    const pdfParse = (await import("pdf-parse")).default;
+    // pdf-parse is CJS-only; dynamic import resolves to the function directly
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const pdfParse = require("pdf-parse") as (buf: Buffer) => Promise<{ text: string }>;
     const data = await pdfParse(buffer);
     return data.text;
   }
