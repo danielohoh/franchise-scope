@@ -15,14 +15,9 @@ async function extractTextFromFile(file: File) {
   }
 
   if (name.endsWith(".pdf")) {
-    // pdf-parse exports a class via CJS — use require() to access it
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { PDFParse } = require("pdf-parse") as {
-      PDFParse: new (opts: { data: Buffer }) => { getText(): Promise<{ text: string }>; destroy(): Promise<void> };
-    };
-    const parser = new PDFParse({ data: buffer });
-    const result = await parser.getText();
-    await parser.destroy();
+    const pdfParse = require("pdf-parse") as (buf: Buffer) => Promise<{ text: string }>;
+    const result = await pdfParse(buffer);
     return result.text;
   }
 
