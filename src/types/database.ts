@@ -11,15 +11,7 @@ export type Json = unknown;
 
 export type UserRole = "user" | "admin";
 export type UserPlan = "free" | "pro" | "enterprise";
-export type Industry =
-  | "치킨"
-  | "카페"
-  | "한식"
-  | "분식"
-  | "피자·햄버거"
-  | "편의점"
-  | "서비스업"
-  | "기타";
+export type Industry = "외식" | "도소매" | "서비스";
 export type ProspectStatus =
   | "inquiry"
   | "consulting"
@@ -143,6 +135,12 @@ export interface CollectedData {
   };
   competitors: CompetitorRaw[];
   population: PopulationData;
+  /** 소상공인 공공데이터 API 기반 실제 경쟁 데이터 */
+  public_competition?: {
+    same_industry_500m: number;
+    total_stores_500m: number;
+    is_real: boolean;
+  };
   /** 사용자 입력 임대 조건 (없으면 AI가 상권 시세로 추정) */
   property?: PropertyInput;
 }
