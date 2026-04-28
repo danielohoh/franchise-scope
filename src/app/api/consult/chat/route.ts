@@ -339,16 +339,18 @@ export async function POST(request: Request) {
             send("text_delta", { delta: "분석 리포트 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요." });
           }
 
-          // 정보 추출 (백그라운드)
-          try {
-            const { object: extracted } = await generateObject({
-              model: getLlmModel(),
-              schema: extractSchema,
-              prompt: `상담 내용에서 정보를 추출하세요:\n${orderedHistory.map((m) => `${m.role === "user" ? "고객" : "AI"}: ${m.content}`).join("\n")}`,
-            });
-            await supabase.from("consultation_sessions")
-              .update({ extracted_data: extracted }).eq("id", session.id);
-          } catch { /* 추출 실패는 무시 */ }
+          // 정보 추출 — SSE 스트림 닫힌 뒤 완전히 분리 실행 (스트림 차단 금지)
+          void (async () => {
+            try {
+              const { object: extracted } = await generateObject({
+                model: getLlmModel(),
+                schema: extractSchema,
+                prompt: `상담 내용에서 정보를 추출하세요:\n${orderedHistory.map((m) => `${m.role === "user" ? "고객" : "AI"}: ${m.content}`).join("\n")}`,
+              });
+              await supabase.from("consultation_sessions")
+                .update({ extracted_data: extracted }).eq("id", session.id);
+            } catch { /* 추출 실패는 무시 */ }
+          })();
 
         } else {
           // ── 일반 채팅 모드 (질문/탐색) ────────────────────
