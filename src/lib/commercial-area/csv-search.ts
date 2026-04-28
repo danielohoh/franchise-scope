@@ -301,52 +301,85 @@ export async function searchShops(params: CommercialAreaSearchParams): Promise<C
 
 /**
  * 업종명(브랜드 업종)을 CSV 대분류명으로 매핑한다.
+ * 업종: 외식 → 음식, 도소매 → 소매, 서비스 → 생활서비스
  */
 export function mapBrandIndustryToMajor(brandIndustry: string): string | undefined {
   const mapping: Record<string, string> = {
-    치킨: "음식",
-    카페: "음식",
-    한식: "음식",
-    분식: "음식",
-    "피자·햄버거": "음식",
-    편의점: "소매",
-    서비스업: "생활서비스",
-    기타: "음식",
+    외식: "음식",
+    도소매: "소매",
+    서비스: "생활서비스",
   };
   return mapping[brandIndustry];
 }
 
 /**
  * 업종명을 CSV 중분류 키워드로 매핑한다.
- * CSV 실제값 기준: 카페→"비알코올", 치킨→"기타 간이", 한식→"한식", 분식→"분식", 편의점→"슈퍼"
+ * 새 업종 체계(외식/도소매/서비스)는 대분류 수준이므로 중분류는 세부업종(sub_industry)에서 결정.
  */
 export function mapBrandIndustryToMid(brandIndustry: string): string | undefined {
-  const mapping: Record<string, string | undefined> = {
-    치킨: "기타 간이",
-    카페: "비알코올",
-    한식: "한식",
-    분식: "분식",
-    "피자·햄버거": "기타 간이",
-    편의점: "슈퍼",
-    서비스업: undefined,
-    기타: undefined,
-  };
-  return mapping[brandIndustry];
+  // 대분류(외식/도소매/서비스)만으로는 중분류를 특정할 수 없음 → undefined 반환
+  // 세부업종이 필요한 경우 mapSubIndustryToMid 사용
+  return undefined;
 }
 
 /**
- * 업종명을 CSV 소분류 키워드로 매핑한다. (중분류보다 정밀)
+ * 업종명을 CSV 소분류 키워드로 매핑한다.
+ * 대분류(외식/도소매/서비스)만으로는 소분류를 특정할 수 없음 → undefined 반환
+ * 세부업종이 필요한 경우 mapSubIndustryToSub 사용
  */
 export function mapBrandIndustryToSub(brandIndustry: string): string | undefined {
+  return undefined;
+}
+
+/**
+ * 세부업종(sub_industry)을 CSV 소분류 키워드로 매핑한다.
+ */
+export function mapSubIndustryToSub(subIndustry: string): string | undefined {
   const mapping: Record<string, string | undefined> = {
-    치킨: "치킨",
-    카페: "카페",
     한식: "한식",
     분식: "분식",
-    "피자·햄버거": "피자",
+    중식: "중식",
+    일식: "일식",
+    서양식: "서양식",
+    "기타 외국식": undefined,
+    패스트푸드: "패스트푸드",
+    치킨: "치킨",
+    피자: "피자",
+    제과제빵: "제과점",
+    "아이스크림/빙수": "아이스크림",
+    커피: "카페",
+    "음료(커피외)": "비알코올",
+    주점: "주점",
+    "기타 외식": undefined,
     편의점: "편의점",
-    서비스업: undefined,
-    기타: undefined,
+    "의류/패션": "의류",
+    화장품: "화장품",
+    농수산물: "농수산물",
+    "(건강)식품": "건강식품",
+    종합소매점: "슈퍼",
+    기타도소매: undefined,
+    "교육(교과)": "학원",
+    "교육(외국어)": "학원",
+    "기타 교육": "학원",
+    "육아관련(교육 외)": undefined,
+    "부동산 중개": "부동산",
+    임대: undefined,
+    숙박: "숙박",
+    육아관련: undefined,
+    "스포츠 관련": "스포츠",
+    이미용: "미용",
+    "자동차 관련": "자동차",
+    PC방: "게임",
+    오락: undefined,
+    배달: undefined,
+    안경: "안경",
+    세탁: "세탁소",
+    이사: undefined,
+    운송: undefined,
+    "반려동물 관련": "동물병원",
+    약국: "약국",
+    "인력 파견": undefined,
+    "기타 서비스": undefined,
   };
-  return mapping[brandIndustry];
+  return mapping[subIndustry];
 }
