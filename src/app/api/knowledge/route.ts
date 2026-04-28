@@ -15,10 +15,8 @@ async function extractTextFromFile(file: File) {
   }
 
   if (name.endsWith(".pdf")) {
-    const { PDFParse } = await import("pdf-parse");
-    const parser = new PDFParse({ data: buffer });
-    const data = await parser.getText();
-    await parser.destroy();
+    const pdfParse = (await import("pdf-parse")).default;
+    const data = await pdfParse(buffer);
     return data.text;
   }
 
