@@ -29,15 +29,28 @@ type ApiError = {
 type BrandUpsertBody = Omit<Database["public"]["Tables"]["brands"]["Insert"], "id" | "user_id" | "created_at" | "updated_at">;
 
 const industries: ReadonlyArray<{ label: string; value: Industry }> = [
-  { label: "치킨", value: "치킨" },
-  { label: "카페", value: "카페" },
-  { label: "한식", value: "한식" },
-  { label: "분식", value: "분식" },
-  { label: "피자·햄버거", value: "피자·햄버거" },
-  { label: "편의점", value: "편의점" },
-  { label: "서비스업", value: "서비스업" },
-  { label: "기타", value: "기타" },
+  { label: "외식", value: "외식" },
+  { label: "도소매", value: "도소매" },
+  { label: "서비스", value: "서비스" },
 ];
+
+const subIndustryOptions: Record<Industry, ReadonlyArray<string>> = {
+  외식: [
+    "한식", "분식", "중식", "일식", "서양식", "기타 외국식",
+    "패스트푸드", "치킨", "피자", "제과제빵", "아이스크림/빙수",
+    "커피", "음료(커피외)", "주점", "기타 외식",
+  ],
+  도소매: [
+    "편의점", "의류/패션", "화장품", "농수산물", "(건강)식품",
+    "종합소매점", "기타도소매",
+  ],
+  서비스: [
+    "교육(교과)", "교육(외국어)", "기타 교육", "육아관련(교육 외)",
+    "부동산 중개", "임대", "숙박", "육아관련", "스포츠 관련",
+    "이미용", "자동차 관련", "PC방", "오락", "배달", "안경",
+    "세탁", "이사", "운송", "반려동물 관련", "약국", "인력 파견", "기타 서비스",
+  ],
+};
 
 function digitsOnly(value: string) {
   return value.replace(/\D/g, "");
@@ -297,13 +310,14 @@ export default function BrandPage() {
     reset,
     setValue,
     watch,
+    getValues,
     formState: { errors, isSubmitting },
   } = useForm<BrandFormValues>({
     resolver: zodResolver(brandFormSchema),
     defaultValues: {
       brand_name: "",
-      industry: "치킨",
-      sub_industry: "",
+      industry: "외식",
+      sub_industry: "한식",
       avg_store_size_pyeong: "",
       franchise_fee: "",
       education_fee: "",
@@ -408,6 +422,18 @@ export default function BrandPage() {
       cancelled = true;
     };
   }, [reset]);
+
+  const watchedIndustry = watch("industry");
+
+  // Reset sub_industry when industry changes (but not during initial prefill)
+  useEffect(() => {
+    if (isPrefilling) return;
+    const options = subIndustryOptions[watchedIndustry] ?? [];
+    const currentSub = getValues("sub_industry");
+    if (!options.includes(currentSub)) {
+      setValue("sub_industry", options[0] ?? "", { shouldDirty: true });
+    }
+  }, [watchedIndustry, isPrefilling, getValues, setValue]);
 
   const values = watch();
   const completion = useMemo(() => {
@@ -548,7 +574,13 @@ export default function BrandPage() {
 
             <div className="space-y-2">
               <FieldLabel label="세부 업종" required />
-              <TextInput placeholder="예: 숯불치킨, 스페셜티 커피" {...register("sub_industry")} />
+              <SelectInput {...register("sub_industry")}>
+                {(subIndustryOptions[watchedIndustry] ?? []).map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </SelectInput>
               <FieldError message={errors.sub_industry?.message} />
             </div>
 

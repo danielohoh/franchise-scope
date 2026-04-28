@@ -18,16 +18,7 @@ type BrandsUpsertResponse = {
   brand: BrandRow;
 };
 
-const industryValues: ReadonlyArray<Industry> = [
-  "치킨",
-  "카페",
-  "한식",
-  "분식",
-  "피자·햄버거",
-  "편의점",
-  "서비스업",
-  "기타",
-];
+const industryValues: ReadonlyArray<Industry> = ["외식", "도소매", "서비스"];
 
 const industrySchema = z.enum(industryValues);
 
