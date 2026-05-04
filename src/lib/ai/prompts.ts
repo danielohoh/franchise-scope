@@ -203,7 +203,7 @@ ${brandInfo}
 ${populationInfo}
 
 [주변 경쟁점 현황] (총 ${collectedData.competitors.length}개 발견)
-${competitorSummary || "경쟁점 없음"}
+${competitorSummary || `경쟁점 없음 — 실데이터 수집 불가. 반드시 아래 [경쟁점 분석 필수 지침]에 따라 AI 추정 경쟁점 10개(프랜차이즈 5개 + 개인점 5개)를 생성하세요. 빈 배열 [] 출력 절대 금지.`}
 ${collectedData.public_competition?.is_real
   ? `[공공데이터 기반 반경 500m 경쟁 현황]
 동종 업종 점포 수: ${collectedData.public_competition.same_industry_500m}개

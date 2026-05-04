@@ -9,6 +9,152 @@ import type { DbBrand } from "@/types/database";
 import type { CollectedData } from "@/types/database";
 
 // ============================================
+// 경쟁점 보완 — LLM이 빈 배열 반환 시 fallback
+// ============================================
+
+type CompetitorEntry = ReportAnalysis["competitors"][number];
+type RiskLevel = CompetitorEntry["risk_level"];
+
+/** 업종별 대표 프랜차이즈 경쟁점 풀 */
+const FRANCHISE_POOL: Record<string, Array<{ name: string; risk: RiskLevel; rev: number }>> = {
+  치킨: [
+    { name: "교촌치킨", risk: "높음", rev: 45_000_000 },
+    { name: "BBQ", risk: "높음", rev: 42_000_000 },
+    { name: "bhc치킨", risk: "높음", rev: 40_000_000 },
+    { name: "굽네치킨", risk: "보통", rev: 35_000_000 },
+    { name: "60계치킨", risk: "보통", rev: 30_000_000 },
+  ],
+  카페: [
+    { name: "스타벅스", risk: "높음", rev: 65_000_000 },
+    { name: "메가커피", risk: "높음", rev: 45_000_000 },
+    { name: "컴포즈커피", risk: "높음", rev: 40_000_000 },
+    { name: "이디야커피", risk: "보통", rev: 32_000_000 },
+    { name: "빽다방", risk: "보통", rev: 30_000_000 },
+  ],
+  커피: [
+    { name: "스타벅스", risk: "높음", rev: 65_000_000 },
+    { name: "메가커피", risk: "높음", rev: 45_000_000 },
+    { name: "컴포즈커피", risk: "높음", rev: 40_000_000 },
+    { name: "이디야커피", risk: "보통", rev: 32_000_000 },
+    { name: "투썸플레이스", risk: "보통", rev: 38_000_000 },
+  ],
+  한식: [
+    { name: "한솥도시락", risk: "높음", rev: 25_000_000 },
+    { name: "본죽", risk: "보통", rev: 20_000_000 },
+    { name: "새마을식당", risk: "보통", rev: 28_000_000 },
+    { name: "김가네", risk: "보통", rev: 18_000_000 },
+    { name: "고봉민김밥", risk: "낮음", rev: 15_000_000 },
+  ],
+  분식: [
+    { name: "죠스떡볶이", risk: "높음", rev: 18_000_000 },
+    { name: "엽기떡볶이", risk: "높음", rev: 20_000_000 },
+    { name: "신전떡볶이", risk: "보통", rev: 15_000_000 },
+    { name: "이삭토스트", risk: "보통", rev: 12_000_000 },
+    { name: "국대떡볶이", risk: "낮음", rev: 12_000_000 },
+  ],
+  편의점: [
+    { name: "GS25", risk: "치명적", rev: 60_000_000 },
+    { name: "CU", risk: "치명적", rev: 58_000_000 },
+    { name: "세븐일레븐", risk: "높음", rev: 50_000_000 },
+    { name: "이마트24", risk: "높음", rev: 45_000_000 },
+    { name: "미니스톱", risk: "보통", rev: 35_000_000 },
+  ],
+  피자: [
+    { name: "도미노피자", risk: "높음", rev: 40_000_000 },
+    { name: "피자헛", risk: "높음", rev: 45_000_000 },
+    { name: "피자알볼로", risk: "보통", rev: 30_000_000 },
+    { name: "7번가피자", risk: "보통", rev: 25_000_000 },
+    { name: "미스터피자", risk: "낮음", rev: 22_000_000 },
+  ],
+  햄버거: [
+    { name: "맥도날드", risk: "높음", rev: 55_000_000 },
+    { name: "버거킹", risk: "높음", rev: 50_000_000 },
+    { name: "롯데리아", risk: "보통", rev: 40_000_000 },
+    { name: "맘스터치", risk: "보통", rev: 35_000_000 },
+    { name: "서브웨이", risk: "낮음", rev: 28_000_000 },
+  ],
+  "피자·햄버거": [
+    { name: "맥도날드", risk: "높음", rev: 55_000_000 },
+    { name: "버거킹", risk: "높음", rev: 50_000_000 },
+    { name: "도미노피자", risk: "높음", rev: 40_000_000 },
+    { name: "롯데리아", risk: "보통", rev: 40_000_000 },
+    { name: "피자헛", risk: "보통", rev: 45_000_000 },
+  ],
+};
+
+const FALLBACK_FRANCHISE_POOL: Array<{ name: string; risk: RiskLevel; rev: number }> = [
+  { name: "맥도날드", risk: "높음", rev: 55_000_000 },
+  { name: "스타벅스", risk: "높음", rev: 65_000_000 },
+  { name: "GS25", risk: "보통", rev: 60_000_000 },
+  { name: "이디야커피", risk: "보통", rev: 32_000_000 },
+  { name: "파리바게뜨", risk: "낮음", rev: 28_000_000 },
+];
+
+// 고정 오프셋 값 (Math.random 미사용 — 재현성 보장)
+const FILL_FR_DIST   = [480, 580, 680, 760, 850] as const;
+const FILL_FR_RATING = [4.1, 3.9, 4.2, 3.8, 4.0] as const;
+const FILL_FR_REVIEW = [180, 120, 250,  90, 150] as const;
+
+const FILL_IN_DIST   = [280, 380, 480, 620, 750] as const;
+const FILL_IN_RATING = [3.8, 3.5, 4.0, 3.7, 3.6] as const;
+const FILL_IN_REVIEW = [ 65,  30,  90,  45,  20] as const;
+const FILL_IN_REV    = [14_000_000, 10_000_000, 18_000_000, 12_000_000, 9_000_000] as const;
+const FILL_IN_RISK: ReadonlyArray<RiskLevel> = ["보통", "낮음", "높음", "보통", "낮음"];
+
+/**
+ * LLM이 경쟁점을 채우지 않은 경우 서버에서 기본값으로 보완.
+ * 프랜차이즈·개인점 각각 최소 5개를 보장한다.
+ */
+function fillMissingCompetitors(
+  competitors: CompetitorEntry[],
+  subIndustry: string | null,
+  industry: string,
+): CompetitorEntry[] {
+  const franchises = competitors.filter((c) => c.type === "프랜차이즈");
+  const individuals = competitors.filter((c) => c.type === "개인점");
+
+  if (franchises.length >= 5 && individuals.length >= 5) return competitors;
+
+  const result = [...competitors];
+  const poolKey = subIndustry ?? industry;
+  const pool = FRANCHISE_POOL[poolKey] ?? FALLBACK_FRANCHISE_POOL;
+  const indLabel = subIndustry ?? industry;
+
+  // 프랜차이즈 채우기 (5개까지)
+  for (let i = franchises.length; i < 5; i++) {
+    const p = pool[i % pool.length];
+    result.push({
+      rank: result.length + 1,
+      name: p.name,
+      distance_m: FILL_FR_DIST[i] ?? 600,
+      type: "프랜차이즈",
+      rating: FILL_FR_RATING[i] ?? 4.0,
+      review_count: FILL_FR_REVIEW[i] ?? 100,
+      estimated_monthly_revenue: p.rev,
+      risk_level: p.risk,
+      note: "(AI 추정 — 실데이터 미수집)",
+    });
+  }
+
+  // 개인점 채우기 (5개까지)
+  for (let i = individuals.length; i < 5; i++) {
+    result.push({
+      rank: result.length + 1,
+      name: `인근 ${indLabel} 소형매장 ${i + 1}호`,
+      distance_m: FILL_IN_DIST[i] ?? 500,
+      type: "개인점",
+      rating: FILL_IN_RATING[i] ?? 3.7,
+      review_count: FILL_IN_REVIEW[i] ?? 40,
+      estimated_monthly_revenue: FILL_IN_REV[i] ?? 12_000_000,
+      risk_level: FILL_IN_RISK[i] ?? "보통",
+      note: "(AI 추정 — 실데이터 미수집)",
+    });
+  }
+
+  return result;
+}
+
+// ============================================
 // Vercel AI SDK 기반 LLM 추상화
 // 환경변수 LLM_PROVIDER로 provider 전환
 // ============================================
@@ -374,7 +520,15 @@ export async function generateReport(input: GenerateReportInput): Promise<Report
       prompt: userPrompt,
       maxRetries: 2,
     });
-    return object;
+    // Groq/Llama 등 일부 모델이 enum 오타(프렌차이즈 등)를 통과시키는 경우 방어
+    const result = ReportAnalysisSchema.parse(repairAnalysis(object));
+    // LLM이 경쟁점을 채우지 않은 경우 서버에서 기본값으로 보완
+    result.competitors = fillMissingCompetitors(
+      result.competitors,
+      input.brand.sub_industry,
+      input.brand.industry,
+    );
+    return result;
   } catch (primaryError) {
     console.warn(
       "[generate] generateObject 실패, text fallback 시도:",
@@ -410,7 +564,14 @@ export async function generateReport(input: GenerateReportInput): Promise<Report
   const repaired = repairAnalysis(parsed);
 
   // Zod parse — 여기서 실패하면 최종 에러로 전파
-  return ReportAnalysisSchema.parse(repaired);
+  const fallbackResult = ReportAnalysisSchema.parse(repaired);
+  // LLM이 경쟁점을 채우지 않은 경우 서버에서 기본값으로 보완
+  fallbackResult.competitors = fillMissingCompetitors(
+    fallbackResult.competitors,
+    input.brand.sub_industry,
+    input.brand.industry,
+  );
+  return fallbackResult;
 }
 
 export { ReportAnalysisSchema };
