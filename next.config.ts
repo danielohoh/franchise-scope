@@ -31,6 +31,9 @@ const nextConfig: NextConfig = {
       canvas: false,
       encoding: false,
     };
+    // 빌드 캐시 비활성화 — Vercel 빌드 캐시 복원 시 webpack manifest가
+    // 구버전 청크 경로를 참조하는 ChunkLoadError 방지
+    config.cache = false;
     return config;
   },
 };
