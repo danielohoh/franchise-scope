@@ -60,11 +60,19 @@ export function ReportViewer({ analysisId, onCompleteAction }: ReportViewerProps
   const recommendationRef = React.useRef<string | null>(null);
   // React 19 strict mode 이중 마운트 방지
   const streamingRef = React.useRef(false);
+  // onCompleteAction을 ref로 보관 → useEffect deps에서 제거해 router.refresh() 루프 방지
+  const onCompleteActionRef = React.useRef(onCompleteAction);
+  React.useLayoutEffect(() => {
+    onCompleteActionRef.current = onCompleteAction;
+  });
+  // complete 콜백 중복 호출 방지 (router.refresh() 후 재스트리밍 시 토스트/콜백 반복 차단)
+  const callbackFiredRef = React.useRef(false);
 
   React.useEffect(() => {
     reset();
     setError("");
     streamingRef.current = false;
+    callbackFiredRef.current = false;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [analysisId]);
 
@@ -110,12 +118,16 @@ export function ReportViewer({ analysisId, onCompleteAction }: ReportViewerProps
       if (event.type === "complete") {
         setStreaming(false);
         setComplete(true);
-        const score = totalScoreRef.current;
-        const rec = recommendationRef.current;
-        if (typeof score === "number" && Number.isFinite(score) && rec) {
-          onCompleteAction(score, rec);
+        // 최초 complete 수신 시에만 콜백/토스트 실행 (router.refresh() 후 재연결 시 중복 방지)
+        if (!callbackFiredRef.current) {
+          callbackFiredRef.current = true;
+          const score = totalScoreRef.current;
+          const rec = recommendationRef.current;
+          if (typeof score === "number" && Number.isFinite(score) && rec) {
+            onCompleteActionRef.current(score, rec);
+          }
+          toast.success("보고서 생성이 완료되었습니다.");
         }
-        toast.success("보고서 생성이 완료되었습니다.");
         return;
       }
 
@@ -137,7 +149,10 @@ export function ReportViewer({ analysisId, onCompleteAction }: ReportViewerProps
       es.close();
       streamingRef.current = false;
     };
-  }, [analysisId, onCompleteAction, setComplete, setCurrentSection, setError, setSectionComplete, setSectionDelta, setStreaming]);
+  // onCompleteAction은 ref(onCompleteActionRef)로 관리하므로 deps에서 제외
+  // → router.refresh()로 인한 함수 참조 변경이 effect 재실행을 유발하지 않음
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [analysisId, setComplete, setCurrentSection, setError, setSectionComplete, setSectionDelta, setStreaming]);
 
   React.useEffect(() => {
     const html = sections.recommendation;

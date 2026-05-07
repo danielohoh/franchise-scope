@@ -186,8 +186,15 @@ export default function DisclosureDetailPage() {
 
       const payload = {
         brand_name: brand.brand_name,
+        company_name: brand.company_name,
+        representative: brand.representative,
+        business_number: brand.business_number,
+        address: brand.address,
+        phone: brand.phone,
         industry: brand.industry,
         sub_industry: brand.sub_industry,
+        category: brand.category,
+        price_tier: brand.price_tier,
         avg_store_size_pyeong: brand.avg_store_size_pyeong,
         franchise_fee: fill.franchise_fee ?? brand.franchise_fee,
         education_fee: fill.education_fee ?? brand.education_fee,
