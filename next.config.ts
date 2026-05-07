@@ -22,7 +22,8 @@ const nextConfig: NextConfig = {
     ],
   },
   // docx, pdf-parse, mammoth 패키지를 서버사이드에서만 사용 (클라이언트 번들 제외)
-  serverExternalPackages: ["docx", "pdf-parse", "mammoth"],
+  // kordoc, pdfjs-dist: 서버사이드 전용 (ESM 번들링 문제 회피)
+  serverExternalPackages: ["docx", "pdf-parse", "mammoth", "kordoc", "pdfjs-dist"],
   webpack: (config) => {
     // pdf-parse가 내부적으로 canvas/encoding 을 require하는 문제 해결
     config.resolve.alias = {

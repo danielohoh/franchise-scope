@@ -8,11 +8,10 @@ import {
   FileText,
   LayoutDashboard,
   LogOut,
-  MapPin,
-  MessageSquare,
+  Search,
   Menu,
   Settings,
-  Users,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -20,6 +19,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { PwaInstallButton } from "@/components/pwa-install-button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
 
 type BrandsGetResponse = {
@@ -37,14 +37,14 @@ type MenuItem = {
   gateKey: "brand" | "none";
 };
 
+// v2.0 네비게이션 — PRD §UI/UX 기준
 const menuItems: ReadonlyArray<MenuItem> = [
-  { label: "대시보드", href: "/dashboard", Icon: LayoutDashboard, gateKey: "brand" },
-  { label: "브랜드관리", href: "/dashboard/brand", Icon: Building2, gateKey: "none" },
-  { label: "예비창업자", href: "/dashboard/prospects", Icon: Users, gateKey: "brand" },
-  { label: "보고서", href: "/dashboard/reports", Icon: FileText, gateKey: "brand" },
-  { label: "AI 매물 추천", href: "/dashboard/recommend", Icon: MapPin, gateKey: "brand" },
-  { label: "AI 상담관리", href: "/dashboard/consultations", Icon: MessageSquare, gateKey: "brand" },
-  { label: "설정", href: "/dashboard/settings", Icon: Settings, gateKey: "brand" },
+  { label: "대시보드", href: "/dashboard", Icon: LayoutDashboard, gateKey: "none" },
+  { label: "브랜드관리", href: "/brand", Icon: Building2, gateKey: "none" },
+  { label: "정보공개서", href: "/disclosure", Icon: FileText, gateKey: "brand" },
+  { label: "상권분석", href: "/analysis", Icon: Search, gateKey: "brand" },
+  { label: "AI 매물추천", href: "/dashboard/recommend", Icon: Sparkles, gateKey: "none" },
+  { label: "설정", href: "/settings", Icon: Settings, gateKey: "none" },
 ];
 
 function isActivePath(pathname: string, href: string) {
@@ -101,38 +101,41 @@ function UserFooter({ userName }: { userName: string }) {
           <p className="truncate text-sm font-semibold text-foreground">{userName}</p>
           <p className="text-xs text-muted-foreground">로그인됨</p>
         </div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          disabled={isLoggingOut}
-          className="shrink-0"
-          onClick={() => {
-            void (async () => {
-              try {
-                setIsLoggingOut(true);
-                const response = await fetch("/api/auth/logout", { method: "POST" });
-                const json = (await response.json()) as { success?: boolean } | ApiError;
+        <div className="flex items-center gap-2 shrink-0">
+          <ThemeToggle className="rounded-xl" />
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            disabled={isLoggingOut}
+            className="shrink-0 rounded-xl"
+            onClick={() => {
+              void (async () => {
+                try {
+                  setIsLoggingOut(true);
+                  const response = await fetch("/api/auth/logout", { method: "POST" });
+                  const json = (await response.json()) as { success?: boolean } | ApiError;
 
-                if (!response.ok) {
-                  const message = "message" in json ? json.message : "로그아웃에 실패했습니다.";
-                  throw new Error(message);
+                  if (!response.ok) {
+                    const message = "message" in json ? json.message : "로그아웃에 실패했습니다.";
+                    throw new Error(message);
+                  }
+
+                  router.refresh();
+                  window.location.assign("/auth/login");
+                } catch (error) {
+                  console.error("[logout] failed", error);
+                  toast.error(error instanceof Error ? error.message : "로그아웃에 실패했습니다.");
+                } finally {
+                  setIsLoggingOut(false);
                 }
-
-                router.refresh();
-                window.location.assign("/auth/login");
-              } catch (error) {
-                console.error("[logout] failed", error);
-                toast.error(error instanceof Error ? error.message : "로그아웃에 실패했습니다.");
-              } finally {
-                setIsLoggingOut(false);
-              }
-            })();
-          }}
-        >
-          <LogOut className="size-4" />
-          <span className="sr-only">로그아웃</span>
-        </Button>
+              })();
+            }}
+          >
+            <LogOut className="size-4" />
+            <span className="sr-only">로그아웃</span>
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -216,7 +219,7 @@ export function DashboardMobileTopbar({
       </Sheet>
 
       <div className="text-sm font-semibold text-foreground">{title}</div>
-      <div className="w-8" />
+      <ThemeToggle className="rounded-xl" />
     </header>
   );
 }

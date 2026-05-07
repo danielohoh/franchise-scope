@@ -1,13 +1,22 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import type { GeocodeRequest, GeocodeResponse } from "@/types/api";
+// v2.0: 인라인 타입 (types/api.ts 제거됨)
+type GeocodeRequest = {
+  address: string;
+};
+
+type GeocodeResponse = {
+  lat: number;
+  lng: number;
+  formattedAddress: string;
+};
 
 const geocodeRequestSchema = z.object({
   address: z.string().trim().min(1, "주소를 입력해 주세요."),
 });
 
-interface KakaoGeocodeResponse {
+type KakaoGeocodeResponse = {
   documents: Array<{
     address_name: string;
     x: string; // longitude
@@ -16,13 +25,13 @@ interface KakaoGeocodeResponse {
     road_address?: { address_name: string } | null;
   }>;
   meta: { total_count: number };
-}
+};
 
-interface NominatimResult {
+type NominatimResult = {
   lat: string;
   lon: string;
   display_name: string;
-}
+};
 
 /** Kakao Local API 지오코딩 — 한국 주소에 최적화 */
 async function geocodeWithKakao(address: string, apiKey: string): Promise<GeocodeResponse | null> {
@@ -121,22 +130,14 @@ export async function POST(request: Request) {
     let result: GeocodeResponse | null = null;
 
     // 1) Kakao 우선 (유효한 키가 있을 때)
-    if (hasKakaoKey && kakaoKey) {
-      result = await geocodeWithKakao(address, kakaoKey);
-      if (result) {
-        console.log("[geocode/kakao]", address, "→", result.lat, result.lng);
-      } else {
-        console.warn("[geocode/kakao] 실패 → Nominatim 폴백");
-      }
-    }
+     if (hasKakaoKey && kakaoKey) {
+       result = await geocodeWithKakao(address, kakaoKey);
+     }
 
-    // 2) Nominatim 폴백 (Kakao 없거나 실패 시)
-    if (!result) {
-      result = await geocodeWithNominatim(address);
-      if (result) {
-        console.log("[geocode/nominatim]", address, "→", result.lat, result.lng);
-      }
-    }
+     // 2) Nominatim 폴백 (Kakao 없거나 실패 시)
+     if (!result) {
+       result = await geocodeWithNominatim(address);
+     }
 
     if (!result) {
       return NextResponse.json({ error: "주소를 찾을 수 없습니다." }, { status: 400 });

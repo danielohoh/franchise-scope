@@ -2,7 +2,16 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { computeCompetitionDensity, mapBrandIndustryToMajor, mapBrandIndustryToSub, searchShops } from "@/lib/commercial-area/csv-search";
-import type { CommercialAreaRequest, CommercialAreaResponse } from "@/types/api";
+// v2.0: 인라인 타입 (types/api.ts 제거됨)
+type CommercialAreaRequest = {
+  lat: number;
+  lng: number;
+  industry: string;
+  radius_m?: number;
+};
+
+import type { CommercialAreaResult } from "@/lib/commercial-area/types";
+type CommercialAreaResponse = CommercialAreaResult;
 
 const requestSchema = z.object({
   lat: z.number().min(-90).max(90),

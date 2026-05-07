@@ -3,7 +3,7 @@
 // competitors/route.ts 에서 추출
 // ============================================
 
-export interface GooglePlace {
+export type GooglePlace = {
   id: string;
   displayName?: { text: string };
   formattedAddress?: string;
@@ -11,11 +11,11 @@ export interface GooglePlace {
   rating?: number;
   userRatingCount?: number;
   primaryType?: string;
-}
+};
 
-interface GooglePlacesResponse {
+type GooglePlacesResponse = {
   places?: GooglePlace[];
-}
+};
 
 const FIELD_MASK = [
   "places.id",
@@ -27,7 +27,7 @@ const FIELD_MASK = [
   "places.primaryType",
 ].join(",");
 
-export interface SearchNearbyOptions {
+export type SearchNearbyOptions = {
   lat: number;
   lng: number;
   radiusM: number;
@@ -35,7 +35,7 @@ export interface SearchNearbyOptions {
   maxResultCount?: number;
   rankBy?: "DISTANCE" | "POPULARITY";
   apiKey: string;
-}
+};
 
 /**
  * Google Places API Nearby Search를 호출하여 장소 목록을 반환합니다.

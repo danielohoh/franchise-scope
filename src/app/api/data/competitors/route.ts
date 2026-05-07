@@ -3,7 +3,31 @@ import { z } from "zod";
 
 import { mapBrandIndustryToMajor, mapBrandIndustryToSub, searchShops } from "@/lib/commercial-area/csv-search";
 import { haversineDistance } from "@/lib/utils/geo";
-import type { CompetitorItem, CompetitorsRequest, CompetitorsResponse } from "@/types/api";
+// v2.0: 인라인 타입 정의 (types/api.ts 제거됨)
+type CompetitorItem = {
+  name: string;
+  address: string;
+  lat: number;
+  lng: number;
+  distance_m: number;
+  rating: number | null;
+  review_count: number;
+  is_open: boolean | null;
+  place_id: string;
+  type: "프랜차이즈" | "개인점";
+};
+
+type CompetitorsRequest = {
+  lat: number;
+  lng: number;
+  industry: string;
+  radius?: number;
+};
+
+type CompetitorsResponse = {
+  competitors: CompetitorItem[];
+  total: number;
+};
 
 const competitorsRequestSchema = z.object({
   lat: z.number().min(-90).max(90),
@@ -111,7 +135,7 @@ function classifyType(name: string): "프랜차이즈" | "개인점" {
 // Google Places API (New) — Nearby Search
 // ============================================================
 
-interface GooglePlace {
+type GooglePlace = {
   id: string;
   displayName?: { text: string };
   formattedAddress?: string;
@@ -119,11 +143,11 @@ interface GooglePlace {
   rating?: number;
   userRatingCount?: number;
   primaryType?: string;
-}
+};
 
-interface GooglePlacesResponse {
+type GooglePlacesResponse = {
   places?: GooglePlace[];
-}
+};
 
 const FIELD_MASK = [
   "places.id",

@@ -1,38 +1,35 @@
-// ============================================
-// FranchiseScope — Supabase Database Types
-// Supabase PostgreSQL 스키마 기반 TypeScript 타입
-// ============================================
+// ============================================================================
+// FranchiseScope v2.0 — Supabase Database Types
+//
+// 1:1 mapping with supabase/migrations/005_v2_disclosure_analysis.sql
+// Hand-written for clarity with JSONB shapes.
+// ============================================================================
 
-// ---- Enum Types ----
-// Json: Supabase JSONB 컬럼 타입
-// 주의: 재귀 타입은 TypeScript 복잡도 한계로 Supabase 제네릭 추론을 깨뜨림
-// unknown을 사용하고, 실제 사용처에서 명시적 캐스팅 적용
-export type Json = unknown;
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[];
 
-export type UserRole = "user" | "admin";
-export type UserPlan = "free" | "pro" | "enterprise";
-export type Industry = "외식" | "도소매" | "서비스";
-export type ProspectStatus =
-  | "inquiry"
-  | "consulting"
-  | "report_requested"
-  | "contracted"
-  | "rejected";
-export type ReportStatus =
-  | "pending"
-  | "collecting"
-  | "analyzing"
-  | "generating"
-  | "completed"
-  | "failed";
-export type Recommendation = "적극추천" | "조건부추천" | "재검토필요" | "반려";
-export type AgeGroup = "20대" | "30대" | "40대" | "50대" | "60대+";
+// ── Literal unions ──────────────────────────────────────────────────────────
+export type UserRole              = 'user' | 'admin';
+export type UserPlan              = 'free' | 'pro' | 'enterprise';
+export type Industry              = '외식' | '도소매' | '서비스';
+export type PriceTier             = '저가' | '중가' | '프리미엄';
+export type RoyaltyType           = 'fixed' | 'rate' | 'none';
+export type DisclosureParseStatus =
+  | 'uploaded' | 'extracting_text' | 'parsing' | 'completed' | 'failed';
+export type AnalysisStatus        =
+  | 'pending' | 'collecting' | 'collected' | 'generating' | 'completed' | 'failed';
+export type Recommendation        = '적극추천' | '조건부추천' | '재검토필요' | '반려';
 
-// ---- Row Types ----
+// ── Row types ───────────────────────────────────────────────────────────────
 
 export type DbUser = {
   id: string;
-  phone: string;
+  phone: string | null;
   name: string;
   email: string | null;
   company_name: string | null;
@@ -43,10 +40,14 @@ export type DbUser = {
 }
 
 export type User = DbUser;
+export type AppUser = DbUser;
+export type UserRecord = DbUser;
 
 export type DbBrand = {
   id: string;
   user_id: string;
+
+  // 기존 필드
   brand_name: string;
   industry: Industry;
   sub_industry: string | null;
@@ -72,133 +73,128 @@ export type DbBrand = {
   total_stores: number | null;
   avg_close_rate: number | null;
   notes: string | null;
-  created_at: string;
-  updated_at: string;
-}
 
-export type DbProspect = {
-  id: string;
-  user_id: string;
-  brand_id: string | null;
-  name: string;
+  // v2.0 추가 필드 (migration 005)
+  company_name: string | null;
+  representative: string | null;
+  business_number: string | null;
+  address: string | null;
   phone: string | null;
-  email: string | null;
-  age_group: AgeGroup | null;
-  investment_budget: number | null;
-  experience: string | null;
-  preferred_region: string | null;
-  consultation_date: string | null;
-  status: ProspectStatus;
-  memo: string | null;
+  category: string | null;
+  price_tier: PriceTier | null;
+  royalty_type: RoyaltyType | null;
+  royalty_amount: number | null;
+  standard_size_min: number | null;
+  standard_size_max: number | null;
+  standard_staff_count: number | null;
+  territory_protection_meters: number | null;
+  contract_period_years: number | null;
+
   created_at: string;
   updated_at: string;
 }
 
-export type DbReport = {
+export type DbDisclosure = {
+  id: string;
+  brand_id: string;
+  user_id: string;
+  file_name: string;
+  file_path: string;
+  file_size: number;
+  registration_number: string | null;
+  registration_date: string | null;   // 'YYYY-MM-DD'
+  parse_status: DisclosureParseStatus;
+  parse_error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type DbDisclosureParsedData = {
+  id: string;
+  disclosure_id: string;
+  brand_id: string;
+  financials: Json | null;
+  franchisee_status: Json | null;
+  avg_sales: Json | null;
+  fees: Json | null;
+  menu: Json | null;
+  contract_terms: Json | null;
+  ongoing_costs: Json | null;
+  legal_issues: Json | null;
+  direct_stores: Json | null;
+  raw_text: string | null;
+  parse_confidence: number | null;    // 0.00 ~ 1.00
+  manually_reviewed: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export type DbAnalysis = {
   id: string;
   user_id: string;
-  brand_id: string | null;
-  prospect_id: string | null;
+  brand_id: string;
+  disclosure_id: string | null;
   address: string;
-  latitude: number | null;
-  longitude: number | null;
-  collected_data: Json | null;
-  analysis_result: Json | null;
-  report_title: string | null;
-  recommendation: Recommendation | null;
-  total_score: number | null;
-  file_url: string | null;
-  file_name: string | null;
-  status: ReportStatus;
+  latitude: number;
+  longitude: number;
+  target_size_pyeong: number | null;
+  target_floor: string | null;
+  target_rent: number | null;
+  status: AnalysisStatus;
   error_message: string | null;
-  llm_provider: string | null;
-  llm_model: string | null;
-  generation_time_seconds: number | null;
+  total_score: number | null;
+  recommendation: Recommendation | null;
   created_at: string;
   updated_at: string;
 }
 
-// ---- Collected Data (pipeline에서 수집하는 원본 데이터) ----
-
-/** 사용자가 직접 입력한 임대 조건 (원 단위). null = 미입력 → AI 추정 */
-export interface PropertyInput {
-  deposit: number | null;
-  monthly_rent: number | null;
-  maintenance_fee: number | null;
+export type DbAnalysisCollectedData = {
+  id: string;
+  analysis_id: string;
+  population_data: Json | null;
+  commercial_data: Json | null;
+  rent_data: Json | null;
+  competitor_data: Json | null;
+  location_data: Json | null;
+  data_sources: Json | null;
+  collection_completed_at: string | null;
+  created_at: string;
 }
 
-export interface CollectedData {
-  geocode: {
-    lat: number;
-    lng: number;
-    formatted_address: string;
-  };
-  competitors: CompetitorRaw[];
-  population: PopulationData;
-  /** 소상공인 공공데이터 API 기반 실제 경쟁 데이터 */
-  public_competition?: {
-    same_industry_500m: number;
-    total_stores_500m: number;
-    is_real: boolean;
-  };
-  /** 사용자 입력 임대 조건 (없으면 AI가 상권 시세로 추정) */
-  property?: PropertyInput;
+export type DbAnalysisReport = {
+  id: string;
+  analysis_id: string;
+  report_html: string | null;
+  report_sections: Json | null;
+  docx_file_path: string | null;
+  docx_generated_at: string | null;
+  llm_model: string | null;
+  llm_tokens_used: number | null;
+  created_at: string;
+  updated_at: string;
 }
 
-export interface CompetitorRaw {
-  name: string;
-  address: string;
-  lat: number;
-  lng: number;
-  distance_m: number;
-  rating: number | null;
-  review_count: number;
-  is_open: boolean | null;
-  place_id: string;
-  type: "프랜차이즈" | "개인점";
+export type DbPublicDataCache = {
+  cache_key: string;
+  provider: 'seoul' | 'sbiz' | 'google_places' | 'sgis' | (string & {});
+  payload: Json;
+  expires_at: string;
+  created_at: string;
 }
 
-export interface PopulationData {
-  radius_500m: PopulationRadius;
-  radius_1km: PopulationRadius;
-  radius_2km: PopulationRadius;
-  core_age_group: string;
-  gender_ratio: string;
-  commercial_area_type: string;
-  hourly_traffic: HourlyTraffic;
-  is_mock?: boolean;
-}
+// ── Database generic (Supabase client) ─────────────────────────────────────
+// NOTE: Insert/Update types are explicit (not Omit/Pick) — Supabase's generic
+//       resolver has trouble with complex intersection types.
 
-export interface PopulationRadius {
-  residential: number;
-  households: number;
-  workers: number;
-}
-
-export interface HourlyTraffic {
-  morning: TrafficByDay;
-  lunch: TrafficByDay;
-  afternoon: TrafficByDay;
-  evening: TrafficByDay;
-  night: TrafficByDay;
-}
-
-export interface TrafficByDay {
-  weekday: number;
-  weekend: number;
-}
-
-// ---- Database Schema (Supabase 클라이언트 타입) ----
-
-export interface Database {
+export type Database = {
   public: {
     Tables: {
       users: {
         Row: DbUser;
         Insert: {
           id: string;
-          phone: string;
           name: string;
+          phone?: string | null;
           email?: string | null;
           company_name?: string | null;
           role?: UserRole;
@@ -207,7 +203,7 @@ export interface Database {
           updated_at?: string;
         };
         Update: {
-          phone?: string;
+          phone?: string | null;
           name?: string;
           email?: string | null;
           company_name?: string | null;
@@ -247,6 +243,21 @@ export interface Database {
           total_stores?: number | null;
           avg_close_rate?: number | null;
           notes?: string | null;
+          // v2.0 new fields (all optional — existing code may not send them)
+          company_name?: string | null;
+          representative?: string | null;
+          business_number?: string | null;
+          address?: string | null;
+          phone?: string | null;
+          category?: string | null;
+          price_tier?: PriceTier | null;
+          royalty_type?: RoyaltyType | null;
+          royalty_amount?: number | null;
+          standard_size_min?: number | null;
+          standard_size_max?: number | null;
+          standard_staff_count?: number | null;
+          territory_protection_meters?: number | null;
+          contract_period_years?: number | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -276,262 +287,203 @@ export interface Database {
           total_stores?: number | null;
           avg_close_rate?: number | null;
           notes?: string | null;
+          company_name?: string | null;
+          representative?: string | null;
+          business_number?: string | null;
+          address?: string | null;
+          phone?: string | null;
+          category?: string | null;
+          price_tier?: PriceTier | null;
+          royalty_type?: RoyaltyType | null;
+          royalty_amount?: number | null;
+          standard_size_min?: number | null;
+          standard_size_max?: number | null;
+          standard_staff_count?: number | null;
+          territory_protection_meters?: number | null;
+          contract_period_years?: number | null;
           updated_at?: string;
         };
         Relationships: [];
       };
-      prospects: {
-        Row: DbProspect;
+      disclosures: {
+        Row: DbDisclosure;
         Insert: {
           id?: string;
+          brand_id: string;
           user_id: string;
-          brand_id?: string | null;
-          name: string;
-          phone?: string | null;
-          email?: string | null;
-          age_group?: AgeGroup | null;
-          investment_budget?: number | null;
-          experience?: string | null;
-          preferred_region?: string | null;
-          consultation_date?: string | null;
-          status?: ProspectStatus;
-          memo?: string | null;
+          file_name: string;
+          file_path: string;
+          file_size: number;
+          registration_number?: string | null;
+          registration_date?: string | null;
+          parse_status?: DisclosureParseStatus;
+          parse_error?: string | null;
           created_at?: string;
           updated_at?: string;
         };
         Update: {
-          brand_id?: string | null;
-          name?: string;
-          phone?: string | null;
-          email?: string | null;
-          age_group?: AgeGroup | null;
-          investment_budget?: number | null;
-          experience?: string | null;
-          preferred_region?: string | null;
-          consultation_date?: string | null;
-          status?: ProspectStatus;
-          memo?: string | null;
+          file_name?: string;
+          registration_number?: string | null;
+          registration_date?: string | null;
+          parse_status?: DisclosureParseStatus;
+          parse_error?: string | null;
           updated_at?: string;
         };
         Relationships: [];
       };
-      reports: {
-        Row: DbReport;
+      disclosure_parsed_data: {
+        Row: DbDisclosureParsedData;
+        Insert: {
+          id?: string;
+          disclosure_id: string;
+          brand_id: string;
+          financials?: Json | null;
+          franchisee_status?: Json | null;
+          avg_sales?: Json | null;
+          fees?: Json | null;
+          menu?: Json | null;
+          contract_terms?: Json | null;
+          ongoing_costs?: Json | null;
+          legal_issues?: Json | null;
+          direct_stores?: Json | null;
+          raw_text?: string | null;
+          parse_confidence?: number | null;
+          manually_reviewed?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          financials?: Json | null;
+          franchisee_status?: Json | null;
+          avg_sales?: Json | null;
+          fees?: Json | null;
+          menu?: Json | null;
+          contract_terms?: Json | null;
+          ongoing_costs?: Json | null;
+          legal_issues?: Json | null;
+          direct_stores?: Json | null;
+          raw_text?: string | null;
+          parse_confidence?: number | null;
+          manually_reviewed?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      analyses: {
+        Row: DbAnalysis;
         Insert: {
           id?: string;
           user_id: string;
-          brand_id?: string | null;
-          prospect_id?: string | null;
+          brand_id: string;
+          disclosure_id?: string | null;
           address: string;
-          latitude?: number | null;
-          longitude?: number | null;
-          collected_data?: Json | null;
-          analysis_result?: Json | null;
-          report_title?: string | null;
-          recommendation?: Recommendation | null;
-          total_score?: number | null;
-          file_url?: string | null;
-          file_name?: string | null;
-          status?: ReportStatus;
+          latitude: number;
+          longitude: number;
+          target_size_pyeong?: number | null;
+          target_floor?: string | null;
+          target_rent?: number | null;
+          status?: AnalysisStatus;
           error_message?: string | null;
-          llm_provider?: string | null;
-          llm_model?: string | null;
-          generation_time_seconds?: number | null;
+          total_score?: number | null;
+          recommendation?: Recommendation | null;
           created_at?: string;
           updated_at?: string;
         };
         Update: {
           address?: string;
-          latitude?: number | null;
-          longitude?: number | null;
-          collected_data?: Json | null;
-          analysis_result?: Json | null;
-          report_title?: string | null;
-          recommendation?: Recommendation | null;
-          total_score?: number | null;
-          file_url?: string | null;
-          file_name?: string | null;
-          status?: ReportStatus;
+          latitude?: number;
+          longitude?: number;
+          target_size_pyeong?: number | null;
+          target_floor?: string | null;
+          target_rent?: number | null;
+          status?: AnalysisStatus;
           error_message?: string | null;
-          llm_provider?: string | null;
-          llm_model?: string | null;
-          generation_time_seconds?: number | null;
+          total_score?: number | null;
+          recommendation?: Recommendation | null;
           updated_at?: string;
         };
         Relationships: [];
       };
-      consultation_links: {
-        Row: DbConsultationLink;
+      analysis_collected_data: {
+        Row: DbAnalysisCollectedData;
         Insert: {
           id?: string;
-          user_id: string;
-          brand_id: string;
-          token?: string;
-          label?: string | null;
-          expires_at?: string | null;
-          status?: ConsultationLinkStatus;
+          analysis_id: string;
+          population_data?: Json | null;
+          commercial_data?: Json | null;
+          rent_data?: Json | null;
+          competitor_data?: Json | null;
+          location_data?: Json | null;
+          data_sources?: Json | null;
+          collection_completed_at?: string | null;
           created_at?: string;
         };
         Update: {
-          label?: string | null;
-          expires_at?: string | null;
-          status?: ConsultationLinkStatus;
+          population_data?: Json | null;
+          commercial_data?: Json | null;
+          rent_data?: Json | null;
+          competitor_data?: Json | null;
+          location_data?: Json | null;
+          data_sources?: Json | null;
+          collection_completed_at?: string | null;
         };
         Relationships: [];
       };
-      consultation_sessions: {
-        Row: DbConsultationSession;
+      analysis_reports: {
+        Row: DbAnalysisReport;
         Insert: {
           id?: string;
-          link_id: string;
-          prospect_id?: string | null;
-          contact_name?: string | null;
-          contact_phone?: string | null;
-          started_at?: string;
-          last_active_at?: string;
-          extracted_data?: Json;
-          status?: ConsultationSessionStatus;
-          callback_requested?: boolean;
-          callback_preferred_time?: string | null;
+          analysis_id: string;
+          report_html?: string | null;
+          report_sections?: Json | null;
+          docx_file_path?: string | null;
+          docx_generated_at?: string | null;
+          llm_model?: string | null;
+          llm_tokens_used?: number | null;
+          created_at?: string;
+          updated_at?: string;
         };
         Update: {
-          prospect_id?: string | null;
-          contact_name?: string | null;
-          contact_phone?: string | null;
-          last_active_at?: string;
-          extracted_data?: Json;
-          status?: ConsultationSessionStatus;
-          callback_requested?: boolean;
-          callback_preferred_time?: string | null;
+          report_html?: string | null;
+          report_sections?: Json | null;
+          docx_file_path?: string | null;
+          docx_generated_at?: string | null;
+          llm_model?: string | null;
+          llm_tokens_used?: number | null;
+          updated_at?: string;
         };
         Relationships: [];
       };
-      chat_messages: {
-        Row: DbChatMessage;
+      public_data_cache: {
+        Row: DbPublicDataCache;
         Insert: {
-          id?: string;
-          session_id: string;
-          role: ChatRole;
-          content: string;
-          created_at?: string;
-        };
-        Update: Record<string, never>;
-        Relationships: [];
-      };
-      knowledge_docs: {
-        Row: DbKnowledgeDoc;
-        Insert: {
-          id?: string;
-          brand_id: string;
-          user_id: string;
-          title: string;
-          content: string;
-          file_name?: string | null;
+          cache_key: string;
+          provider: string;
+          payload: Json;
+          expires_at: string;
           created_at?: string;
         };
         Update: {
-          title?: string;
-          content?: string;
+          payload?: Json;
+          expires_at?: string;
         };
         Relationships: [];
       };
     };
-    Views: Record<string, never>;
-    Functions: Record<string, never>;
-    Enums: Record<string, never>;
-    CompositeTypes: Record<string, never>;
+    Views: {
+      [_ in never]: never;
+    };
+    Functions: {
+      cleanup_expired_public_data_cache: {
+        Args: Record<PropertyKey, never>;
+        Returns: number;
+      };
+    };
+    Enums: {
+      [_ in never]: never;
+    };
+    CompositeTypes: {
+      [_ in never]: never;
+    };
   };
-}
-
-// Convenience aliases
-export type AppUser = DbUser;
-export type UserRecord = DbUser;
-
-// ---- New Types: AI 창업 상담 기능 ----
-
-export type ConsultationLinkStatus = "active" | "expired" | "closed";
-export type ConsultationSessionStatus = "active" | "completed";
-export type ChatRole = "user" | "assistant";
-
-export type DbConsultationLink = {
-  id: string;
-  user_id: string;
-  brand_id: string;
-  token: string;
-  label: string | null;
-  expires_at: string | null;
-  status: ConsultationLinkStatus;
-  created_at: string;
-};
-
-export type DbConsultationSession = {
-  id: string;
-  link_id: string;
-  prospect_id: string | null;
-  contact_name: string | null;
-  contact_phone: string | null;
-  started_at: string;
-  last_active_at: string;
-  extracted_data: Json;
-  status: ConsultationSessionStatus;
-  callback_requested: boolean;
-  callback_preferred_time: string | null;
-};
-
-export type DbChatMessage = {
-  id: string;
-  session_id: string;
-  role: ChatRole;
-  content: string;
-  created_at: string;
-};
-
-export type DbKnowledgeDoc = {
-  id: string;
-  brand_id: string;
-  user_id: string;
-  title: string;
-  content: string;
-  file_name: string | null;
-  created_at: string;
-};
-
-/** AI가 대화에서 추출하는 구조화 정보 */
-export type ExtractedProspectData = {
-  name?: string;
-  phone?: string;
-  preferred_region?: string;
-  investment_budget?: number;
-  experience?: string;
-  readiness_level?: "초기탐색" | "진지검토" | "계약의향";
-  key_questions?: string[];
-};
-
-// ---- New Tables: AI 매물 추천 기능 ----
-// (types/recommend.ts에서 전체 정의 — 여기서는 Database 스키마 확장만)
-
-export type DbNaverListingInsert = {
-  user_id: string;
-  article_id: string;
-  region_code: string;
-  region_name?: string | null;
-  trade_type: string;
-  article_name?: string | null;
-  building_name?: string | null;
-  detail_address?: string | null;
-  floor_info?: string | null;
-  area_supply?: number | null;
-  area_exclusive?: number | null;
-  deposit?: number | null;
-  monthly_rent?: number | null;
-  sale_price?: number | null;
-  maintenance_cost?: number | null;
-  building_use?: string | null;
-  parking_available?: boolean | null;
-  parking_count?: number | null;
-  latitude?: number | null;
-  longitude?: number | null;
-  image_url?: string | null;
-  naver_url?: string | null;
-  raw_data?: Json;
 };

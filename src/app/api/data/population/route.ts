@@ -2,7 +2,39 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { searchShops } from "@/lib/commercial-area/csv-search";
-import type { PopulationRequest, PopulationResponse } from "@/types/api";
+// v2.0: 인라인 타입 정의 (types/api.ts 제거됨)
+type PopulationRequest = {
+  lat: number;
+  lng: number;
+};
+
+type PopulationRadius = {
+  residential: number;
+  households: number;
+  workers: number;
+};
+
+type TrafficByDay = {
+  weekday: number;
+  weekend: number;
+};
+
+type PopulationResponse = {
+  radius_500m: PopulationRadius;
+  radius_1km: PopulationRadius;
+  radius_2km: PopulationRadius;
+  core_age_group: string;
+  gender_ratio: string;
+  commercial_area_type: string;
+  hourly_traffic: {
+    morning: TrafficByDay;
+    lunch: TrafficByDay;
+    afternoon: TrafficByDay;
+    evening: TrafficByDay;
+    night: TrafficByDay;
+  };
+  is_mock?: boolean;
+};
 
 const populationRequestSchema = z.object({
   lat: z.number().min(-90).max(90),

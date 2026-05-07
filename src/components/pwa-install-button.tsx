@@ -5,10 +5,10 @@ import { Download, Share, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-interface BeforeInstallPromptEvent extends Event {
-  prompt(): Promise<void>;
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-}
+};
 
 // ── iOS 설치 안내 모달 ────────────────────────────────────────
 
@@ -19,16 +19,16 @@ function IOSInstallModal({ onClose }: { onClose: () => void }) {
       onClick={onClose}
     >
       <div
-        className="w-full max-w-sm rounded-t-2xl bg-white p-6 pb-8 shadow-xl"
+        className="w-full max-w-sm rounded-t-2xl bg-card p-6 pb-8 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* 헤더 */}
         <div className="mb-4 flex items-center justify-between">
-          <p className="text-base font-semibold text-gray-900">홈 화면에 앱 추가</p>
+          <p className="text-base font-semibold text-foreground">홈 화면에 앱 추가</p>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-muted-foreground"
           >
             <X className="size-4" />
           </button>
@@ -36,24 +36,24 @@ function IOSInstallModal({ onClose }: { onClose: () => void }) {
 
         {/* 앱 아이콘 + 이름 */}
         <div className="mb-5 flex items-center gap-3">
-          <div className="flex size-14 items-center justify-center rounded-2xl bg-[#1F4E79]">
-            <span className="text-xl font-black tracking-tighter text-white">FS</span>
+          <div className="flex size-14 items-center justify-center rounded-2xl bg-primary">
+            <span className="text-xl font-black tracking-tighter text-primary-foreground">FS</span>
           </div>
           <div>
-            <p className="font-semibold text-gray-900">FranchiseScope</p>
-            <p className="text-xs text-gray-500">ai-scope.kr</p>
+            <p className="font-semibold text-foreground">FranchiseScope</p>
+            <p className="text-xs text-muted-foreground">ai-scope.kr</p>
           </div>
         </div>
 
         {/* 단계별 설명 */}
         <ol className="space-y-3">
           <li className="flex items-start gap-3">
-            <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[#1F4E79] text-xs font-bold text-white">
+            <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
               1
             </span>
-            <p className="text-sm text-gray-700 leading-snug">
+            <p className="text-sm text-foreground leading-snug">
               하단 가운데{" "}
-              <span className="inline-flex items-center gap-0.5 rounded-md bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-gray-700">
+              <span className="inline-flex items-center gap-0.5 rounded-md bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">
                 <Share className="size-3" />
                 공유
               </span>{" "}
@@ -61,24 +61,24 @@ function IOSInstallModal({ onClose }: { onClose: () => void }) {
             </p>
           </li>
           <li className="flex items-start gap-3">
-            <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[#1F4E79] text-xs font-bold text-white">
+            <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
               2
             </span>
-            <p className="text-sm text-gray-700 leading-snug">
+            <p className="text-sm text-foreground leading-snug">
               아래로 스크롤해서{" "}
-              <span className="rounded-md bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-700">
+              <span className="rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium text-foreground">
                 홈 화면에 추가
               </span>{" "}
               를 탭하세요
             </p>
           </li>
           <li className="flex items-start gap-3">
-            <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[#1F4E79] text-xs font-bold text-white">
+            <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
               3
             </span>
-            <p className="text-sm text-gray-700 leading-snug">
+            <p className="text-sm text-foreground leading-snug">
               오른쪽 상단{" "}
-              <span className="rounded-md bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-700">
+              <span className="rounded-md bg-muted px-1.5 py-0.5 text-xs font-medium text-foreground">
                 추가
               </span>{" "}
               를 탭하면 설치 완료!
@@ -86,7 +86,7 @@ function IOSInstallModal({ onClose }: { onClose: () => void }) {
           </li>
         </ol>
 
-        <p className="mt-4 text-center text-xs text-gray-400">
+        <p className="mt-4 text-center text-xs text-muted-foreground">
           Safari 브라우저에서만 설치할 수 있습니다
         </p>
       </div>

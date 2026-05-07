@@ -1,6 +1,6 @@
 "use client";
 
-import { ExternalLink, BarChart3 } from "lucide-react";
+import { Search, BarChart3 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -109,24 +109,19 @@ export function ListingCard({
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2 pl-10">
-        <a
-          href={listing.naver_url ?? "#"}
-          target="_blank"
-          rel="noreferrer"
-          onClick={(e) => e.stopPropagation()}
-          className={cn(!listing.naver_url ? "pointer-events-none" : null)}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="rounded-xl"
+          onClick={(e) => {
+            e.stopPropagation();
+            router.push(`/dashboard/recommend/${recommendationId}/scope/${listing.id}`);
+          }}
         >
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="rounded-xl"
-            disabled={!listing.naver_url}
-          >
-            <ExternalLink className="size-4" />
-            부동산 매물 보기
-          </Button>
-        </a>
+          <Search className="size-4" />
+          부동산 매물 보기
+        </Button>
 
         <Button
           type="button"

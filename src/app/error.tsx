@@ -27,10 +27,10 @@ export default function GlobalError({
   }, [error]);
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#F8F9FA] p-8 text-center">
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-muted p-8 text-center">
       <div className="text-4xl">⚠️</div>
-      <h1 className="text-xl font-bold text-gray-800">페이지를 불러오지 못했습니다</h1>
-      <p className="text-sm text-gray-500">
+      <h1 className="text-xl font-bold text-foreground">페이지를 불러오지 못했습니다</h1>
+      <p className="text-sm text-muted-foreground">
         새로고침하거나 잠시 후 다시 시도해주세요.
       </p>
       <button
@@ -38,7 +38,7 @@ export default function GlobalError({
           sessionStorage.removeItem("__chunk_reload__");
           reset();
         }}
-        className="rounded-xl bg-[#1F4E79] px-5 py-2.5 text-sm font-medium text-white hover:bg-[#1a4268]"
+        className="rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
       >
         다시 시도
       </button>

@@ -64,32 +64,32 @@ export default function LoginPage() {
   });
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10">
-      <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-[0_20px_80px_rgba(15,23,42,0.08)]">
+    <div className="flex min-h-screen items-center justify-center bg-muted px-4 py-10">
+      <div className="w-full max-w-md rounded-3xl border border-border bg-card p-8 shadow-[0_20px_80px_rgba(15,23,42,0.08)]">
         <div className="mb-8 space-y-3 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#1F4E79]/10 text-lg font-semibold text-[#1F4E79]">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-lg font-semibold text-primary">
             FS
           </div>
-          <h1 className="text-2xl font-semibold text-slate-900">FranchiseScope 로그인</h1>
-          <p className="text-sm leading-6 text-slate-500">이메일과 비밀번호로 로그인하세요.</p>
+          <h1 className="text-2xl font-semibold text-foreground">FranchiseScope 로그인</h1>
+          <p className="text-sm leading-6 text-muted-foreground">이메일과 비밀번호로 로그인하세요.</p>
         </div>
 
         <form className="space-y-4" onSubmit={onSubmit}>
           <div className="space-y-2">
-            <label htmlFor="email" className="text-sm font-medium text-slate-700">이메일</label>
+            <label htmlFor="email" className="text-sm font-medium text-foreground">이메일</label>
             <input
               {...register("email")}
               id="email"
               type="email"
               autoComplete="email"
               placeholder="example@email.com"
-              className="h-12 w-full rounded-2xl border border-slate-200 px-4 text-base outline-none transition focus:border-[#1F4E79] focus:ring-4 focus:ring-[#1F4E79]/10"
+              className="h-12 w-full rounded-2xl border border-border px-4 text-base outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10"
             />
-            {errors.email?.message ? <p className="text-sm text-red-600">{errors.email.message}</p> : null}
+            {errors.email?.message ? <p className="text-sm text-destructive">{errors.email.message}</p> : null}
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="password" className="text-sm font-medium text-slate-700">비밀번호</label>
+            <label htmlFor="password" className="text-sm font-medium text-foreground">비밀번호</label>
             <div className="relative">
               <input
                 {...register("password")}
@@ -97,26 +97,30 @@ export default function LoginPage() {
                 type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
                 placeholder="비밀번호 입력"
-                className="h-12 w-full rounded-2xl border border-slate-200 px-4 pr-12 text-base outline-none transition focus:border-[#1F4E79] focus:ring-4 focus:ring-[#1F4E79]/10"
+                className="h-12 w-full rounded-2xl border border-border px-4 pr-12 text-base outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 tabIndex={-1}
               >
                 {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
               </button>
             </div>
-            {errors.password?.message ? <p className="text-sm text-red-600">{errors.password.message}</p> : null}
+            {errors.password?.message ? <p className="text-sm text-destructive">{errors.password.message}</p> : null}
           </div>
 
-          {error ? <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p> : null}
+          {error ? (
+            <p className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              {error}
+            </p>
+          ) : null}
 
           <Button
             type="submit"
             size="lg"
-            className="h-12 w-full rounded-2xl bg-[#1F4E79] text-white hover:bg-[#173a5b]"
+            className="h-12 w-full rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90"
             disabled={isSubmitting}
           >
             {isSubmitting ? <LoaderCircle className="size-4 animate-spin" /> : null}
@@ -124,9 +128,9 @@ export default function LoginPage() {
           </Button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-slate-500">
+        <p className="mt-6 text-center text-sm text-muted-foreground">
           계정이 없으신가요?{" "}
-          <Link href="/auth/signup" className="font-semibold text-[#1F4E79] underline-offset-4 hover:underline">
+          <Link href="/auth/signup" className="font-semibold text-primary underline-offset-4 hover:underline">
             회원가입
           </Link>
         </p>

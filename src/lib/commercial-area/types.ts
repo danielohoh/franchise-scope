@@ -1,4 +1,4 @@
-export interface ShopResult {
+export type ShopResult = {
   shopId: string;
   name: string;
   branchName: string;
@@ -9,13 +9,13 @@ export interface ShopResult {
   lat: number;
   lng: number;
   distanceM: number;
-}
+};
 
-export interface IndustryDistribution {
+export type IndustryDistribution = {
   category: string;
   count: number;
   ratio: number;
-}
+};
 
 export type CommercialAreaType =
   | "상업상권"
@@ -27,7 +27,7 @@ export type CommercialAreaType =
 
 export type CompetitionLevel = "낮음" | "보통" | "높음" | "매우높음";
 
-export interface CommercialAreaSearchParams {
+export type CommercialAreaSearchParams = {
   lat: number;
   lng: number;
   radiusM: number;
@@ -36,9 +36,9 @@ export interface CommercialAreaSearchParams {
   industrySub?: string;
   /** 반환할 최대 상가 수 (기본값 100) */
   limit?: number;
-}
+};
 
-export interface CommercialAreaResult {
+export type CommercialAreaResult = {
   shops: ShopResult[];
   total: number;
   industryDistribution: IndustryDistribution[];
@@ -50,4 +50,4 @@ export interface CommercialAreaResult {
     totalShopCount: number;
   };
   searchRadiusM: number;
-}
+};

@@ -1,11 +1,32 @@
 import { NextResponse } from "next/server";
 
 import { createClient } from "@/lib/supabase/server";
-import type {
-  BuildingFloorInfo,
-  BuildingRecapInfo,
-  BuildingResponse,
-} from "@/types/recommend";
+// v2.0: 인라인 타입 정의 (types/recommend.ts 제거됨)
+type BuildingRecapInfo = {
+  bldNm: string | null;
+  mainPurpsCdNm: string | null;
+  etcPurps: string | null;
+  totArea: string | null;
+  totPkngCnt: string | null;
+  hhldCnt: string | null;
+  useAprDay: string | null;
+  platPlc: string | null;
+  newPlatPlc: string | null;
+};
+
+type BuildingFloorInfo = {
+  flrNo: string | null;
+  flrArea: string | null;
+  mainPurpsCdNm: string | null;
+  etcPurps: string | null;
+};
+
+type BuildingResponse = {
+  recap: BuildingRecapInfo | null;
+  floors: BuildingFloorInfo[];
+  isNeighborhoodFacility: boolean;
+  parkingCount: number | null;
+};
 
 type BuildingApiItem = {
   bldNm?: string;

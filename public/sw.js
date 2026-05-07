@@ -9,7 +9,7 @@ const APP_SHELL = [
   "/",
   "/dashboard",
   "/dashboard/reports",
-  "/dashboard/brand",
+  "/brand",
 ];
 
 // ── Install: 앱 셸 프리캐시 ──────────────────────────────

@@ -4,6 +4,7 @@ import Script from "next/script";
 import "./globals.css";
 
 import { PwaRegister } from "@/components/pwa-register";
+import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Geist({
@@ -65,6 +66,7 @@ export default function RootLayout({
     <html
       lang="ko"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       {/* ChunkLoadError 자동 복구: 배포 후 구버전 청크 404 → 1회 자동 새로고침 */}
       <Script id="chunk-error-recovery" strategy="beforeInteractive">{`
@@ -94,10 +96,12 @@ export default function RootLayout({
         src={`https://dapi.kakao.com/v2/maps/sdk.js?appkey=${process.env.NEXT_PUBLIC_KAKAO_MAP_KEY}&libraries=services,clusterer&autoload=false`}
         strategy="afterInteractive"
       />
-      <body className="min-h-full flex flex-col bg-[#F8F9FA] text-foreground">
-        {children}
-        <Toaster />
-        <PwaRegister />
+      <body className="min-h-full flex flex-col bg-background text-foreground">
+        <ThemeProvider>
+          {children}
+          <Toaster />
+          <PwaRegister />
+        </ThemeProvider>
       </body>
     </html>
   );

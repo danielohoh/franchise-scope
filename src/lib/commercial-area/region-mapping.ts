@@ -10,14 +10,14 @@ const CSV_BASE_DIR = path.resolve(
   "소상공인시장진흥공단_상가(상권)정보_20251231",
 );
 
-interface RegionBounds {
+type RegionBounds = {
   /** 지역명 (파일명에 사용) */
   name: string;
   latMin: number;
   latMax: number;
   lngMin: number;
   lngMax: number;
-}
+};
 
 /**
  * 한국 17개 시도 경계 (근사값).

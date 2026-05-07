@@ -33,42 +33,42 @@ const FEATURES = [
     title: "AI 자동 상권분석",
     description:
       "주소 입력 즉시 AI가 배후인구, 유동인구, 업종 통계를 자동 수집하고 분석합니다.",
-    gradient: "from-blue-500 to-[#1F4E79]",
+    gradient: "from-chart-2 to-primary",
   },
   {
     icon: Map,
     title: "경쟁점 실시간 분석",
     description:
       "카카오맵 기반으로 반경 1km 내 동종업종을 자동 탐색하고 위험도를 평가합니다.",
-    gradient: "from-emerald-500 to-teal-600",
+    gradient: "from-chart-4 to-chart-4",
   },
   {
     icon: TrendingUp,
     title: "매출 시뮬레이션",
     description:
       "보수적·기본·낙관적 3가지 시나리오로 예상 매출과 손익을 자동 계산합니다.",
-    gradient: "from-amber-500 to-orange-500",
+    gradient: "from-chart-3 to-chart-3",
   },
   {
     icon: Download,
     title: "자동 docx 보고서 생성",
     description:
       "A4 한 장 분량의 전문적인 상권분석 보고서를 Word 파일로 즉시 다운로드할 수 있습니다.",
-    gradient: "from-purple-500 to-violet-600",
+    gradient: "from-primary to-chart-2",
   },
   {
     icon: BarChart3,
     title: "SWOT 분석",
     description:
       "AI가 강점·약점·기회·위협을 4분면으로 시각화하여 입지의 전략적 판단을 돕습니다.",
-    gradient: "from-rose-500 to-pink-500",
+    gradient: "from-destructive to-destructive",
   },
   {
     icon: Shield,
     title: "위험 자동 감지",
     description:
       "동일 건물이나 50m 이내 경쟁점 발견 시 자동으로 경고를 표시하고 반려 처리합니다.",
-    gradient: "from-slate-600 to-slate-800",
+    gradient: "from-muted-foreground to-foreground",
   },
 ];
 
@@ -79,7 +79,7 @@ const STEPS = [
     title: "주소 입력",
     description:
       "예비 창업자의 희망 입지 주소를 입력합니다. 구글 자동완성으로 빠르게 찾을 수 있습니다.",
-    iconBg: "bg-blue-50 text-[#1F4E79]",
+    iconBg: "bg-primary/5 text-primary",
   },
   {
     step: "02",
@@ -87,7 +87,7 @@ const STEPS = [
     title: "AI 자동 분석",
     description:
       "AI가 소상공인 공공데이터, 카카오맵, 경쟁점 정보를 자동 수집하고 분석합니다. 약 30초 소요.",
-    iconBg: "bg-emerald-50 text-emerald-600",
+    iconBg: "bg-muted text-foreground",
   },
   {
     step: "03",
@@ -95,7 +95,7 @@ const STEPS = [
     title: "보고서 다운로드",
     description:
       "완성된 보고서를 웹에서 확인하고 Word(.docx) 파일로 즉시 다운로드하세요.",
-    iconBg: "bg-purple-50 text-purple-600",
+    iconBg: "bg-muted text-foreground",
   },
 ];
 
@@ -141,26 +141,26 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white font-sans">
+    <div className="min-h-screen bg-background font-sans">
       {/* ═══════════════════════════════════════
           NAVBAR
       ═══════════════════════════════════════ */}
       <nav
         className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${
           scrolled
-            ? "bg-white/95 backdrop-blur-md shadow-sm border-b border-slate-100"
+            ? "bg-background/95 backdrop-blur-md shadow-sm border-b border-border"
             : "bg-transparent"
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 flex-shrink-0">
-            <div className="w-8 h-8 bg-[#1F4E79] rounded-xl flex items-center justify-center">
-              <MapPin className="w-4 h-4 text-white" />
+            <Link href="/" className="flex items-center gap-2.5 flex-shrink-0">
+            <div className="w-8 h-8 bg-primary rounded-xl flex items-center justify-center">
+              <MapPin className="w-4 h-4 text-primary-foreground" />
             </div>
             <span
               className={`font-bold text-lg transition-colors ${
-                scrolled ? "text-[#1F4E79]" : "text-white"
+                scrolled ? "text-primary" : "text-primary-foreground"
               }`}
             >
               FranchiseScope
@@ -179,7 +179,9 @@ export default function Home() {
                 key={href}
                 href={href}
                 className={`text-sm font-medium transition-colors hover:opacity-70 ${
-                  scrolled ? "text-slate-700" : "text-white/80 hover:text-white"
+                  scrolled
+                    ? "text-foreground"
+                    : "text-primary-foreground/80 hover:text-primary-foreground"
                 }`}
               >
                 {label}
@@ -193,8 +195,8 @@ export default function Home() {
               href="/auth/login"
               className={`hidden md:block text-sm font-medium px-4 py-2 rounded-xl transition-colors ${
                 scrolled
-                  ? "text-slate-700 hover:bg-slate-100"
-                  : "text-white/80 hover:text-white hover:bg-white/10"
+                  ? "text-foreground hover:bg-muted"
+                  : "text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10"
               }`}
             >
               로그인
@@ -203,8 +205,8 @@ export default function Home() {
               href="/auth/signup"
               className={`text-sm font-semibold px-5 py-2 rounded-xl transition-all ${
                 scrolled
-                  ? "bg-[#1F4E79] text-white hover:bg-[#0D2B45]"
-                  : "bg-white text-[#1F4E79] hover:bg-slate-50 shadow-lg"
+                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                  : "bg-background text-primary hover:bg-muted shadow-lg"
               }`}
             >
               무료로 시작하기
@@ -216,29 +218,29 @@ export default function Home() {
       {/* ═══════════════════════════════════════
           HERO
       ═══════════════════════════════════════ */}
-      <section className="relative min-h-[92vh] flex items-center bg-gradient-to-br from-[#071828] via-[#0D2B45] to-[#1F4E79] overflow-hidden">
+      <section className="relative min-h-[92vh] flex items-center bg-gradient-to-br from-foreground via-foreground to-primary dark:from-background dark:via-background dark:to-primary overflow-hidden">
         {/* Decorative blobs */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-60 -right-60 w-[500px] h-[500px] bg-blue-400/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 -left-40 w-[400px] h-[400px] bg-sky-300/10 rounded-full blur-3xl" />
-          <div className="absolute top-1/2 right-1/4 w-[300px] h-[300px] bg-indigo-400/10 rounded-full blur-2xl" />
+          <div className="absolute -top-60 -right-60 w-[500px] h-[500px] bg-chart-2/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 -left-40 w-[400px] h-[400px] bg-chart-2/10 rounded-full blur-3xl" />
+          <div className="absolute top-1/2 right-1/4 w-[300px] h-[300px] bg-chart-2/10 rounded-full blur-2xl" />
         </div>
 
         <div className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-24">
           <div className="max-w-3xl">
             {/* Badge */}
-            <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-2 mb-8">
-              <Zap className="w-3.5 h-3.5 text-yellow-300" />
-              <span className="text-xs text-white/90 font-semibold tracking-wide">
+            <div className="inline-flex items-center gap-2 bg-primary-foreground/10 border border-primary-foreground/20 rounded-full px-4 py-2 mb-8">
+              <Zap className="w-3.5 h-3.5 text-chart-3" />
+              <span className="text-xs text-primary-foreground/90 font-semibold tracking-wide">
                 프랜차이즈 본사 전용 AI SaaS
               </span>
             </div>
 
             {/* Headline */}
-            <h1 className="text-5xl sm:text-6xl lg:text-[72px] font-black text-white leading-[1.1] tracking-tight mb-6">
+            <h1 className="text-5xl sm:text-6xl lg:text-[72px] font-black text-primary-foreground leading-[1.1] tracking-tight mb-6">
               주소 하나로
               <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-300 via-blue-200 to-white">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-chart-2 via-chart-2/60 to-primary-foreground">
                 완성되는
               </span>
               <br />
@@ -246,13 +248,13 @@ export default function Home() {
             </h1>
 
             {/* Sub */}
-            <p className="text-lg sm:text-xl text-white/65 mb-10 max-w-lg leading-relaxed">
+            <p className="text-lg sm:text-xl text-primary-foreground/65 mb-10 max-w-lg leading-relaxed">
               예비 창업자의 희망 입지를 입력하면
               <br className="hidden sm:block" />
               AI가 상권 데이터를 자동 분석하고
               <br className="hidden sm:block" />
               전문가급 보고서를{" "}
-              <span className="text-white font-semibold">30초</span> 만에
+              <span className="text-primary-foreground font-semibold">30초</span> 만에
               생성합니다.
             </p>
 
@@ -260,14 +262,14 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row gap-3">
               <Link
                 href="/auth/signup"
-                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-[#1F4E79] font-bold text-base rounded-2xl hover:bg-slate-50 transition-all shadow-xl hover:shadow-2xl hover:-translate-y-0.5"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-background text-primary font-bold text-base rounded-2xl hover:bg-muted transition-all shadow-xl hover:shadow-2xl hover:-translate-y-0.5"
               >
                 지금 무료로 시작하기
                 <ArrowRight className="w-5 h-5" />
               </Link>
               <a
                 href="#features"
-                className="inline-flex items-center justify-center gap-2 px-8 py-4 text-white font-semibold text-base rounded-2xl border border-white/20 bg-white/10 hover:bg-white/20 backdrop-blur-sm transition-all"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 text-primary-foreground font-semibold text-base rounded-2xl border border-primary-foreground/20 bg-primary-foreground/10 hover:bg-primary-foreground/20 backdrop-blur-sm transition-all"
               >
                 기능 살펴보기
                 <ChevronDown className="w-4 h-4" />
@@ -275,15 +277,15 @@ export default function Home() {
             </div>
 
             {/* Stats */}
-            <div className="flex flex-wrap gap-10 mt-14 pt-10 border-t border-white/10">
+            <div className="flex flex-wrap gap-10 mt-14 pt-10 border-t border-primary-foreground/10">
               {[
                 { value: "30초", label: "평균 보고서 생성 시간" },
                 { value: "7+", label: "지원 업종" },
                 { value: "무료", label: "현재 모든 기능" },
               ].map(({ value, label }) => (
                 <div key={label} className="flex flex-col">
-                  <span className="text-3xl font-black text-white">{value}</span>
-                  <span className="text-sm text-white/45 mt-0.5">{label}</span>
+                  <span className="text-3xl font-black text-primary-foreground">{value}</span>
+                  <span className="text-sm text-primary-foreground/45 mt-0.5">{label}</span>
                 </div>
               ))}
             </div>
@@ -294,14 +296,14 @@ export default function Home() {
       {/* ═══════════════════════════════════════
           TARGET CUSTOMERS
       ═══════════════════════════════════════ */}
-      <section className="py-24 bg-slate-50">
+      <section className="py-24 bg-muted">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
-            <div className="inline-flex items-center gap-2 bg-[#1F4E79]/10 text-[#1F4E79] rounded-full px-4 py-2 text-sm font-semibold mb-5">
+            <div className="inline-flex items-center gap-2 bg-primary/10 text-primary rounded-full px-4 py-2 text-sm font-semibold mb-5">
               <Target className="w-4 h-4" />
               누구를 위한 서비스인가요
             </div>
-            <h2 className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight">
+            <h2 className="text-4xl sm:text-5xl font-black text-foreground tracking-tight">
               이런 분들을 위해
               <br />
               만들었습니다
@@ -315,24 +317,24 @@ export default function Home() {
                 title: "프랜차이즈 본사\n상권개발팀",
                 description:
                   "가맹점 후보 입지를 빠르게 검토하고, 데이터 기반 의사결정으로 개설 성공률을 높이세요.",
-                bg: "bg-blue-50",
-                iconBg: "bg-[#1F4E79] text-white",
+                bg: "bg-primary/5",
+                iconBg: "bg-primary text-primary-foreground",
               },
               {
                 icon: Users,
                 title: "가맹영업팀\n담당자",
                 description:
                   "예비 창업자 상담 시 전문 보고서를 제시하여 계약 성사율과 고객 신뢰도를 높이세요.",
-                bg: "bg-emerald-50",
-                iconBg: "bg-emerald-600 text-white",
+                bg: "bg-muted",
+                iconBg: "bg-chart-4 text-primary-foreground",
               },
               {
                 icon: Star,
                 title: "소규모 프랜차이즈\n대표",
                 description:
                   "고가의 상권분석 컨설팅 없이도 AI로 전문가 수준의 분석을 직접 수행하세요.",
-                bg: "bg-purple-50",
-                iconBg: "bg-purple-600 text-white",
+                bg: "bg-muted",
+                iconBg: "bg-chart-5 text-primary-foreground",
               },
             ].map(({ icon: Icon, title, description, bg, iconBg }) => (
               <div
@@ -344,10 +346,10 @@ export default function Home() {
                 >
                   <Icon className="w-7 h-7" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-3 whitespace-pre-line">
+                <h3 className="text-xl font-bold text-foreground mb-3 whitespace-pre-line">
                   {title}
                 </h3>
-                <p className="text-slate-600 leading-relaxed text-sm">{description}</p>
+                <p className="text-muted-foreground leading-relaxed text-sm">{description}</p>
               </div>
             ))}
           </div>
@@ -357,19 +359,19 @@ export default function Home() {
       {/* ═══════════════════════════════════════
           FEATURES
       ═══════════════════════════════════════ */}
-      <section id="features" className="py-24 bg-white">
+      <section id="features" className="py-24 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
-            <div className="inline-flex items-center gap-2 bg-[#1F4E79]/10 text-[#1F4E79] rounded-full px-4 py-2 text-sm font-semibold mb-5">
+            <div className="inline-flex items-center gap-2 bg-primary/10 text-primary rounded-full px-4 py-2 text-sm font-semibold mb-5">
               <Zap className="w-4 h-4" />
               핵심 기능
             </div>
-            <h2 className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight">
+            <h2 className="text-4xl sm:text-5xl font-black text-foreground tracking-tight">
               강력한 기능,
               <br />
               단순한 사용법
             </h2>
-            <p className="text-slate-500 mt-4 text-lg max-w-xl mx-auto">
+            <p className="text-muted-foreground mt-4 text-lg max-w-xl mx-auto">
               복잡한 설정 없이 주소 하나만으로 전문가 수준의 상권분석을
               시작하세요.
             </p>
@@ -379,15 +381,15 @@ export default function Home() {
             {FEATURES.map(({ icon: Icon, title, description, gradient }) => (
               <div
                 key={title}
-                className="group bg-white border border-slate-100 rounded-3xl p-7 hover:border-slate-200 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-default"
+                className="group bg-card border border-border rounded-3xl p-7 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-default"
               >
                 <div
-                  className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center text-white mb-5`}
+                  className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center text-primary-foreground mb-5`}
                 >
                   <Icon className="w-6 h-6" />
                 </div>
-                <h3 className="text-lg font-bold text-slate-900 mb-2">{title}</h3>
-                <p className="text-slate-500 text-sm leading-relaxed">{description}</p>
+                <h3 className="text-lg font-bold text-foreground mb-2">{title}</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">{description}</p>
               </div>
             ))}
           </div>
@@ -397,14 +399,14 @@ export default function Home() {
       {/* ═══════════════════════════════════════
           HOW IT WORKS
       ═══════════════════════════════════════ */}
-      <section id="how-it-works" className="py-24 bg-slate-50">
+      <section id="how-it-works" className="py-24 bg-muted">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
-            <div className="inline-flex items-center gap-2 bg-[#1F4E79]/10 text-[#1F4E79] rounded-full px-4 py-2 text-sm font-semibold mb-5">
+            <div className="inline-flex items-center gap-2 bg-primary/10 text-primary rounded-full px-4 py-2 text-sm font-semibold mb-5">
               <Clock className="w-4 h-4" />
               사용 방법
             </div>
-            <h2 className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight">
+            <h2 className="text-4xl sm:text-5xl font-black text-foreground tracking-tight">
               3단계로 완성되는
               <br />
               전문가급 보고서
@@ -414,8 +416,8 @@ export default function Home() {
           <div className="grid md:grid-cols-3 gap-6">
             {STEPS.map(({ step, icon: Icon, title, description, iconBg }, i) => (
               <div key={step} className="relative">
-                <div className="bg-white rounded-3xl p-8 text-center border border-slate-100 hover:shadow-lg transition-shadow">
-                  <div className="text-[80px] font-black text-slate-100 leading-none mb-4 select-none">
+                <div className="bg-card rounded-3xl p-8 text-center border border-border hover:shadow-lg transition-shadow">
+                  <div className="text-[80px] font-black text-muted-foreground/20 leading-none mb-4 select-none">
                     {step}
                   </div>
                   <div
@@ -423,13 +425,13 @@ export default function Home() {
                   >
                     <Icon className="w-8 h-8" />
                   </div>
-                  <h3 className="text-xl font-bold text-slate-900 mb-3">{title}</h3>
-                  <p className="text-slate-500 text-sm leading-relaxed">{description}</p>
+                  <h3 className="text-xl font-bold text-foreground mb-3">{title}</h3>
+                  <p className="text-muted-foreground text-sm leading-relaxed">{description}</p>
                 </div>
                 {i < 2 && (
                   <div className="hidden md:flex absolute top-[7rem] -right-3 z-10 items-center">
-                    <div className="w-5 h-px bg-slate-200" />
-                    <ChevronRight className="w-5 h-5 text-slate-300" />
+                    <div className="w-5 h-px bg-border" />
+                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
                   </div>
                 )}
               </div>
@@ -441,14 +443,14 @@ export default function Home() {
       {/* ═══════════════════════════════════════
           APP PREVIEW (MOCK SCREENSHOT)
       ═══════════════════════════════════════ */}
-      <section className="py-24 bg-white overflow-hidden">
+      <section className="py-24 bg-background overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
-            <div className="inline-flex items-center gap-2 bg-[#1F4E79]/10 text-[#1F4E79] rounded-full px-4 py-2 text-sm font-semibold mb-5">
+            <div className="inline-flex items-center gap-2 bg-primary/10 text-primary rounded-full px-4 py-2 text-sm font-semibold mb-5">
               <FileText className="w-4 h-4" />
               실제 화면
             </div>
-            <h2 className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight">
+            <h2 className="text-4xl sm:text-5xl font-black text-foreground tracking-tight">
               직관적인 대시보드로
               <br />
               한눈에 관리하세요
@@ -456,30 +458,30 @@ export default function Home() {
           </div>
 
           {/* Browser mockup */}
-          <div className="max-w-5xl mx-auto bg-gradient-to-br from-[#071828] to-[#1F4E79] rounded-[2rem] p-1.5 shadow-2xl">
-            <div className="bg-[#0D1F2D] rounded-[1.6rem] p-4">
+          <div className="max-w-5xl mx-auto bg-gradient-to-br from-foreground to-primary dark:from-background dark:to-primary rounded-[2rem] p-1.5 shadow-2xl">
+            <div className="bg-foreground dark:bg-background rounded-[1.6rem] p-4">
               {/* Browser chrome */}
               <div className="flex items-center gap-2 mb-3">
                 <div className="flex gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-red-400/50" />
-                  <div className="w-3 h-3 rounded-full bg-yellow-400/50" />
-                  <div className="w-3 h-3 rounded-full bg-green-400/50" />
+                  <div className="w-3 h-3 rounded-full bg-destructive/50" />
+                  <div className="w-3 h-3 rounded-full bg-chart-3/50" />
+                  <div className="w-3 h-3 rounded-full bg-chart-4/50" />
                 </div>
-                <div className="flex-1 bg-white/8 rounded-lg h-7 flex items-center px-3 ml-2">
-                  <span className="text-white/30 text-xs">
+                <div className="flex-1 bg-primary-foreground/8 rounded-lg h-7 flex items-center px-3 ml-2">
+                  <span className="text-primary-foreground/30 text-xs">
                     ai-scope.kr/dashboard
                   </span>
                 </div>
               </div>
 
               {/* App UI */}
-              <div className="bg-[#F8F9FA] rounded-xl overflow-hidden">
+              <div className="bg-muted rounded-xl overflow-hidden">
                 <div className="flex h-72 sm:h-80">
                   {/* Sidebar */}
-                  <div className="hidden sm:flex w-44 bg-white border-r border-slate-100 flex-col p-3">
+                  <div className="hidden sm:flex w-44 bg-card border-r border-border flex-col p-3">
                     <div className="flex items-center gap-1.5 mb-5 px-1">
-                      <div className="w-5 h-5 bg-[#1F4E79] rounded-md flex-shrink-0" />
-                      <span className="text-[10px] font-black text-[#1F4E79]">
+                      <div className="w-5 h-5 bg-primary rounded-md flex-shrink-0" />
+                      <span className="text-[10px] font-black text-primary">
                         FranchiseScope
                       </span>
                     </div>
@@ -494,13 +496,13 @@ export default function Home() {
                         key={label}
                         className={`flex items-center gap-2 px-3 py-2 rounded-lg mb-0.5 ${
                           active
-                            ? "bg-[#1F4E79] text-white"
-                            : "text-slate-500"
+                            ? "bg-primary text-primary-foreground"
+                            : "text-muted-foreground"
                         }`}
                       >
                         <div
                           className={`w-2.5 h-2.5 rounded ${
-                            active ? "bg-white/30" : "bg-slate-200"
+                            active ? "bg-primary-foreground/30" : "bg-border"
                           }`}
                         />
                         <span className="text-[11px] font-medium">{label}</span>
@@ -511,10 +513,10 @@ export default function Home() {
                   {/* Main content */}
                   <div className="flex-1 p-4 overflow-hidden">
                     <div className="flex items-center justify-between mb-3">
-                      <span className="font-bold text-slate-800 text-sm">
+                      <span className="font-bold text-foreground text-sm">
                         대시보드
                       </span>
-                      <div className="bg-[#1F4E79] text-white text-[10px] font-semibold px-3 py-1.5 rounded-lg">
+                      <div className="bg-primary text-primary-foreground text-[10px] font-semibold px-3 py-1.5 rounded-lg">
                         + 새 보고서 생성
                       </div>
                     </div>
@@ -525,34 +527,34 @@ export default function Home() {
                         {
                           label: "총 보고서",
                           value: "24",
-                          numColor: "text-[#1F4E79]",
+                          numColor: "text-primary",
                         },
                         {
                           label: "이번달",
                           value: "8",
-                          numColor: "text-emerald-600",
+                          numColor: "text-chart-4",
                         },
                         {
                           label: "평균 점수",
                           value: "76점",
-                          numColor: "text-purple-600",
+                          numColor: "text-primary",
                         },
                         {
                           label: "예비창업자",
                           value: "12명",
-                          numColor: "text-amber-600",
+                          numColor: "text-chart-3",
                         },
                       ].map(({ label, value, numColor }) => (
                         <div
                           key={label}
-                          className="bg-white rounded-xl p-2.5 border border-slate-100"
+                          className="bg-card rounded-xl p-2.5 border border-border"
                         >
                           <div
                             className={`text-base font-black ${numColor}`}
                           >
                             {value}
                           </div>
-                          <div className="text-[9px] text-slate-400 mt-0.5">
+                          <div className="text-[9px] text-muted-foreground mt-0.5">
                             {label}
                           </div>
                         </div>
@@ -560,10 +562,10 @@ export default function Home() {
                     </div>
 
                     {/* Recent reports */}
-                    <div className="bg-white rounded-xl p-3 border border-slate-100">
-                      <div className="text-[11px] font-semibold text-slate-700 mb-2 flex items-center justify-between">
+                    <div className="bg-card rounded-xl p-3 border border-border">
+                      <div className="text-[11px] font-semibold text-foreground mb-2 flex items-center justify-between">
                         <span>최근 보고서</span>
-                        <span className="text-[#1F4E79] text-[10px]">
+                        <span className="text-primary text-[10px]">
                           전체 보기 →
                         </span>
                       </div>
@@ -572,30 +574,30 @@ export default function Home() {
                           name: "강남구 역삼동 ○○치킨",
                           score: "82점",
                           status: "적극추천",
-                          badgeClass: "text-emerald-600 bg-emerald-50",
+                          badgeClass: "text-chart-4 bg-chart-4/10",
                         },
                         {
                           name: "마포구 합정동 ○○카페",
                           score: "71점",
                           status: "조건부추천",
-                          badgeClass: "text-amber-600 bg-amber-50",
+                          badgeClass: "text-chart-3 bg-chart-3/10",
                         },
                         {
                           name: "서초구 방배동 ○○한식",
                           score: "58점",
                           status: "재검토필요",
-                          badgeClass: "text-orange-500 bg-orange-50",
+                          badgeClass: "text-chart-3 bg-chart-3/10",
                         },
                       ].map(({ name, score, status, badgeClass }) => (
                         <div
                           key={name}
-                          className="flex items-center justify-between py-2 border-b border-slate-50 last:border-0"
+                          className="flex items-center justify-between py-2 border-b border-border last:border-0"
                         >
-                          <span className="text-[11px] text-slate-600 truncate mr-2">
+                          <span className="text-[11px] text-muted-foreground truncate mr-2">
                             {name}
                           </span>
                           <div className="flex items-center gap-1.5 flex-shrink-0">
-                            <span className="text-[11px] font-bold text-slate-700">
+                            <span className="text-[11px] font-bold text-foreground">
                               {score}
                             </span>
                             <span
@@ -622,10 +624,10 @@ export default function Home() {
             ].map(({ icon: Icon, text }) => (
               <div
                 key={text}
-                className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl"
+                className="flex items-center gap-3 p-4 bg-muted rounded-2xl"
               >
-                <Icon className="w-5 h-5 text-[#1F4E79] flex-shrink-0" />
-                <span className="text-sm font-medium text-slate-700">{text}</span>
+                <Icon className="w-5 h-5 text-primary flex-shrink-0" />
+                <span className="text-sm font-medium text-foreground">{text}</span>
               </div>
             ))}
           </div>
@@ -635,36 +637,36 @@ export default function Home() {
       {/* ═══════════════════════════════════════
           PRICING
       ═══════════════════════════════════════ */}
-      <section id="pricing" className="py-24 bg-slate-50">
+      <section id="pricing" className="py-24 bg-muted">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
-            <div className="inline-flex items-center gap-2 bg-[#1F4E79]/10 text-[#1F4E79] rounded-full px-4 py-2 text-sm font-semibold mb-5">
+            <div className="inline-flex items-center gap-2 bg-primary/10 text-primary rounded-full px-4 py-2 text-sm font-semibold mb-5">
               <Star className="w-4 h-4" />
               요금제
             </div>
-            <h2 className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight">
+            <h2 className="text-4xl sm:text-5xl font-black text-foreground tracking-tight">
               지금은 완전 무료
             </h2>
-            <p className="text-slate-500 mt-4 text-lg">
+            <p className="text-muted-foreground mt-4 text-lg">
               MVP 기간 동안 모든 기능을 무료로 이용하세요.
             </p>
           </div>
 
           <div className="max-w-md mx-auto">
-            <div className="relative bg-gradient-to-br from-[#1F4E79] to-[#071828] rounded-3xl p-8 text-white overflow-hidden shadow-2xl">
+            <div className="relative bg-gradient-to-br from-primary to-foreground dark:to-background rounded-3xl p-8 text-primary-foreground overflow-hidden shadow-2xl">
               {/* Blobs */}
-              <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full translate-x-12 -translate-y-12 pointer-events-none" />
-              <div className="absolute bottom-0 left-0 w-36 h-36 bg-white/5 rounded-full -translate-x-8 translate-y-8 pointer-events-none" />
+              <div className="absolute top-0 right-0 w-48 h-48 bg-primary-foreground/5 rounded-full translate-x-12 -translate-y-12 pointer-events-none" />
+              <div className="absolute bottom-0 left-0 w-36 h-36 bg-primary-foreground/5 rounded-full -translate-x-8 translate-y-8 pointer-events-none" />
 
               <div className="relative">
-                <div className="inline-flex items-center gap-1.5 bg-white/15 rounded-full px-3 py-1 text-xs font-semibold mb-6">
-                  <Zap className="w-3 h-3 text-yellow-300" />
+                <div className="inline-flex items-center gap-1.5 bg-primary-foreground/15 rounded-full px-3 py-1 text-xs font-semibold mb-6">
+                  <Zap className="w-3 h-3 text-chart-3" />
                   FREE PLAN
                 </div>
 
                 <div className="mb-7">
                   <div className="text-6xl font-black tracking-tight">₩0</div>
-                  <div className="text-white/50 text-sm mt-1.5">
+                  <div className="text-primary-foreground/50 text-sm mt-1.5">
                     완전 무료 · 신용카드 불필요
                   </div>
                 </div>
@@ -681,18 +683,18 @@ export default function Home() {
                     "브랜드 정보 관리",
                   ].map((item) => (
                     <div key={item} className="flex items-center gap-3">
-                      <CheckCircle className="w-5 h-5 text-emerald-300 flex-shrink-0" />
-                      <span className="text-sm text-white/85">{item}</span>
-                    </div>
-                  ))}
+                  <CheckCircle className="w-5 h-5 text-chart-4/70 flex-shrink-0" />
+                  <span className="text-sm text-primary-foreground/85">{item}</span>
                 </div>
+              ))}
+            </div>
 
-                <Link
-                  href="/auth/signup"
-                  className="block text-center bg-white text-[#1F4E79] font-bold py-4 rounded-2xl hover:bg-slate-50 transition-colors text-base"
-                >
-                  지금 무료로 시작하기
-                </Link>
+              <Link
+                href="/auth/signup"
+                className="block text-center bg-background text-primary font-bold py-4 rounded-2xl hover:bg-muted transition-colors text-base"
+              >
+                지금 무료로 시작하기
+              </Link>
               </div>
             </div>
           </div>
@@ -702,13 +704,13 @@ export default function Home() {
       {/* ═══════════════════════════════════════
           FAQ
       ═══════════════════════════════════════ */}
-      <section id="faq" className="py-24 bg-white">
+      <section id="faq" className="py-24 bg-background">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
-            <div className="inline-flex items-center gap-2 bg-[#1F4E79]/10 text-[#1F4E79] rounded-full px-4 py-2 text-sm font-semibold mb-5">
+            <div className="inline-flex items-center gap-2 bg-primary/10 text-primary rounded-full px-4 py-2 text-sm font-semibold mb-5">
               FAQ
             </div>
-            <h2 className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight">
+            <h2 className="text-4xl sm:text-5xl font-black text-foreground tracking-tight">
               자주 묻는 질문
             </h2>
           </div>
@@ -717,23 +719,23 @@ export default function Home() {
             {FAQS.map(({ q, a }, i) => (
               <div
                 key={q}
-                className="border border-slate-100 rounded-2xl overflow-hidden bg-white"
+                className="border border-border rounded-2xl overflow-hidden bg-card"
               >
                 <button
                   onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                  className="w-full flex items-center justify-between px-6 py-5 text-left hover:bg-slate-50 transition-colors"
+                  className="w-full flex items-center justify-between px-6 py-5 text-left hover:bg-muted transition-colors"
                 >
-                  <span className="font-semibold text-slate-900 text-sm sm:text-base pr-4">
+                  <span className="font-semibold text-foreground text-sm sm:text-base pr-4">
                     {q}
                   </span>
                   <ChevronDown
-                    className={`w-5 h-5 text-slate-400 flex-shrink-0 transition-transform duration-200 ${
+                    className={`w-5 h-5 text-muted-foreground flex-shrink-0 transition-transform duration-200 ${
                       openFaq === i ? "rotate-180" : ""
                     }`}
                   />
                 </button>
                 {openFaq === i && (
-                  <div className="px-6 pb-5 text-slate-600 text-sm leading-relaxed border-t border-slate-100 pt-4">
+                  <div className="px-6 pb-5 text-muted-foreground text-sm leading-relaxed border-t border-border pt-4">
                     {a}
                   </div>
                 )}
@@ -746,33 +748,33 @@ export default function Home() {
       {/* ═══════════════════════════════════════
           FINAL CTA
       ═══════════════════════════════════════ */}
-      <section className="py-28 bg-gradient-to-br from-[#071828] via-[#0D2B45] to-[#1F4E79] overflow-hidden relative">
+      <section className="py-28 bg-gradient-to-br from-foreground via-foreground to-primary overflow-hidden relative">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-blue-500/10 rounded-full blur-3xl" />
+          <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-chart-2/10 rounded-full blur-3xl" />
         </div>
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-2 text-sm font-semibold text-white/80 mb-8">
-            <Zap className="w-4 h-4 text-yellow-300" />
+          <div className="inline-flex items-center gap-2 bg-primary-foreground/10 border border-primary-foreground/20 rounded-full px-4 py-2 text-sm font-semibold text-primary-foreground/80 mb-8">
+            <Zap className="w-4 h-4 text-chart-3" />
             지금 바로 시작하세요
           </div>
-          <h2 className="text-4xl sm:text-5xl lg:text-[56px] font-black text-white leading-tight tracking-tight mb-6">
+          <h2 className="text-4xl sm:text-5xl lg:text-[56px] font-black text-primary-foreground leading-tight tracking-tight mb-6">
             가입 후 5분 안에
             <br />
             첫 보고서를 생성할 수 있습니다
           </h2>
-          <p className="text-xl text-white/55 mb-10 max-w-xl mx-auto leading-relaxed">
+          <p className="text-xl text-primary-foreground/55 mb-10 max-w-xl mx-auto leading-relaxed">
             복잡한 설정 없이 바로 시작하세요.
             <br />
             주소 하나만으로 AI가 전부 처리합니다.
           </p>
           <Link
             href="/auth/signup"
-            className="inline-flex items-center gap-3 px-10 py-5 bg-white text-[#1F4E79] font-black text-lg rounded-2xl hover:bg-slate-50 transition-all shadow-2xl hover:-translate-y-1"
+            className="inline-flex items-center gap-3 px-10 py-5 bg-background text-primary font-black text-lg rounded-2xl hover:bg-muted transition-all shadow-2xl hover:-translate-y-1"
           >
             무료로 시작하기
             <ArrowRight className="w-6 h-6" />
           </Link>
-          <p className="text-white/30 text-sm mt-6">
+          <p className="text-primary-foreground/30 text-sm mt-6">
             신용카드 불필요 · 즉시 시작 · 완전 무료
           </p>
         </div>
@@ -781,16 +783,16 @@ export default function Home() {
       {/* ═══════════════════════════════════════
           FOOTER
       ═══════════════════════════════════════ */}
-      <footer className="bg-[#060F17] text-white/40 py-14">
+      <footer className="bg-foreground dark:bg-background text-primary-foreground/40 py-14">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-start gap-10 mb-10">
             {/* Brand */}
             <div className="max-w-xs">
               <div className="flex items-center gap-2.5 mb-3">
-                <div className="w-8 h-8 bg-[#1F4E79] rounded-xl flex items-center justify-center">
-                  <MapPin className="w-4 h-4 text-white" />
+                <div className="w-8 h-8 bg-primary rounded-xl flex items-center justify-center">
+                  <MapPin className="w-4 h-4 text-primary-foreground" />
                 </div>
-                <span className="font-bold text-base text-white">
+                <span className="font-bold text-base text-primary-foreground">
                   FranchiseScope
                 </span>
               </div>
@@ -804,7 +806,7 @@ export default function Home() {
             {/* Links */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-10 text-sm">
               <div>
-                <div className="font-semibold text-white/70 mb-3">서비스</div>
+                <div className="font-semibold text-primary-foreground/70 mb-3">서비스</div>
                 {[
                   { label: "기능 소개", href: "#features" },
                   { label: "사용 방법", href: "#how-it-works" },
@@ -814,14 +816,14 @@ export default function Home() {
                   <a
                     key={label}
                     href={href}
-                    className="block mt-2 hover:text-white/70 transition-colors"
+                    className="block mt-2 hover:text-primary-foreground/70 transition-colors"
                   >
                     {label}
                   </a>
                 ))}
               </div>
               <div>
-                <div className="font-semibold text-white/70 mb-3">계정</div>
+                <div className="font-semibold text-primary-foreground/70 mb-3">계정</div>
                 {[
                   { label: "로그인", href: "/auth/login" },
                   { label: "회원가입", href: "/auth/signup" },
@@ -830,14 +832,14 @@ export default function Home() {
                   <Link
                     key={label}
                     href={href}
-                    className="block mt-2 hover:text-white/70 transition-colors"
+                    className="block mt-2 hover:text-primary-foreground/70 transition-colors"
                   >
                     {label}
                   </Link>
                 ))}
               </div>
               <div>
-                <div className="font-semibold text-white/70 mb-3">기술 스택</div>
+                <div className="font-semibold text-primary-foreground/70 mb-3">기술 스택</div>
                 {["Next.js 16", "Supabase", "Groq AI", "카카오맵"].map(
                   (item) => (
                     <div key={item} className="mt-2">
@@ -849,7 +851,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="border-t border-white/5 pt-6 text-center text-xs">
+          <div className="border-t border-primary-foreground/5 pt-6 text-center text-xs">
             © 2024 FranchiseScope. All rights reserved.
           </div>
         </div>

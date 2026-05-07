@@ -42,9 +42,9 @@ function Field({
 }) {
   return (
     <div className="space-y-2">
-      <label className="block text-sm font-medium text-slate-700">{label}</label>
+      <label className="block text-sm font-medium text-foreground">{label}</label>
       {children}
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
     </div>
   );
 }
@@ -95,7 +95,7 @@ export default function SignupPage() {
       // race condition이 발생해 ERR_FAILED ("사이트에 연결할 수 없습니다") 가 순간 노출됨.
       // Next.js 클라이언트 사이드 RSC 네비게이션은 현재 쿠키를 포함한 fetch 요청을
       // 보내므로 race condition 없이 안전하게 이동함.
-      router.push("/dashboard/brand");
+      router.push("/brand");
     } catch (err) {
       console.error("[signup] error", err);
       setSubmitError("회원가입 처리 중 오류가 발생했습니다.");
@@ -105,19 +105,19 @@ export default function SignupPage() {
   const inputClass = (hasError: boolean) =>
     cn(
       "h-11 w-full rounded-xl border px-3 text-sm outline-none transition",
-      "focus:border-[#1F4E79] focus:ring-2 focus:ring-[#1F4E79]/20",
-      hasError ? "border-red-400" : "border-slate-200",
+      "focus:border-primary focus:ring-2 focus:ring-primary/20",
+      hasError ? "border-destructive" : "border-border",
     );
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10">
-      <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-[0_20px_80px_rgba(15,23,42,0.08)]">
+    <div className="flex min-h-screen items-center justify-center bg-muted px-4 py-10">
+      <div className="w-full max-w-md rounded-3xl border border-border bg-card p-8 shadow-[0_20px_80px_rgba(15,23,42,0.08)]">
         <div className="mb-8 space-y-2 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#1F4E79]/10 text-lg font-semibold text-[#1F4E79]">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-lg font-semibold text-primary">
             FS
           </div>
-          <h1 className="text-2xl font-semibold text-slate-900">회원가입</h1>
-          <p className="text-sm text-slate-500">FranchiseScope를 시작하세요.</p>
+          <h1 className="text-2xl font-semibold text-foreground">회원가입</h1>
+          <p className="text-sm text-muted-foreground">FranchiseScope를 시작하세요.</p>
         </div>
 
         <form onSubmit={onSubmit} className="space-y-4">
@@ -143,7 +143,7 @@ export default function SignupPage() {
               <button
                 type="button"
                 onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 tabIndex={-1}
               >
                 {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
@@ -163,7 +163,7 @@ export default function SignupPage() {
               <button
                 type="button"
                 onClick={() => setShowConfirm((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 tabIndex={-1}
               >
                 {showConfirm ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
@@ -190,22 +190,24 @@ export default function SignupPage() {
           </Field>
 
           {submitError ? (
-            <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{submitError}</p>
+            <p className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              {submitError}
+            </p>
           ) : null}
 
           <Button
             type="submit"
             disabled={isSubmitting}
-            className="h-11 w-full rounded-xl bg-[#1F4E79] text-white hover:bg-[#173a5b]"
+            className="h-11 w-full rounded-xl bg-primary text-primary-foreground hover:bg-primary/90"
           >
             {isSubmitting ? <LoaderCircle className="size-4 animate-spin" /> : null}
             회원가입
           </Button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-slate-500">
+        <p className="mt-6 text-center text-sm text-muted-foreground">
           이미 계정이 있으신가요?{" "}
-          <Link href="/auth/login" className="font-semibold text-[#1F4E79] underline-offset-4 hover:underline">
+          <Link href="/auth/login" className="font-semibold text-primary underline-offset-4 hover:underline">
             로그인
           </Link>
         </p>

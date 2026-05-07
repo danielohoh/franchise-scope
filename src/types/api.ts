@@ -1,23 +1,23 @@
-export interface GeocodeRequest {
+export type GeocodeRequest = {
   address: string;
-}
+};
 
-export interface GeocodeResponse {
+export type GeocodeResponse = {
   lat: number;
   lng: number;
   formattedAddress: string;
-}
+};
 
-export interface CompetitorsRequest {
+export type CompetitorsRequest = {
   lat: number;
   lng: number;
   industry: string;
   radius?: number;
-}
+};
 
 export type CompetitorType = "프랜차이즈" | "개인점";
 
-export interface CompetitorItem {
+export type CompetitorItem = {
   name: string;
   address: string;
   lat: number;
@@ -28,30 +28,30 @@ export interface CompetitorItem {
   is_open: boolean | null;
   place_id: string;
   type: CompetitorType;
-}
+};
 
-export interface CompetitorsResponse {
+export type CompetitorsResponse = {
   competitors: CompetitorItem[];
   total: number;
-}
+};
 
-export interface PopulationRequest {
+export type PopulationRequest = {
   lat: number;
   lng: number;
-}
+};
 
-export interface PopulationRadius {
+export type PopulationRadius = {
   residential: number;
   households: number;
   workers: number;
-}
+};
 
-export interface PopulationTrafficByDay {
+export type PopulationTrafficByDay = {
   weekday: number;
   weekend: number;
-}
+};
 
-export interface PopulationResponse {
+export type PopulationResponse = {
   radius_500m: PopulationRadius;
   radius_1km: PopulationRadius;
   radius_2km: PopulationRadius;
@@ -66,33 +66,33 @@ export interface PopulationResponse {
     night: PopulationTrafficByDay;
   };
   is_mock?: boolean;
-}
+};
 
 // ───────────────────────────────────────────────
 // 상권정보 (소상공인시장진흥공단 CSV 기반)
 // ───────────────────────────────────────────────
 
-export interface CommercialAreaRequest {
+export type CommercialAreaRequest = {
   lat: number;
   lng: number;
   industry: string;
   radius_m?: number;
-}
+};
 
-export interface CommercialAreaIndustryDistribution {
+export type CommercialAreaIndustryDistribution = {
   category: string;
   count: number;
   ratio: number;
-}
+};
 
-export interface CommercialAreaCompetitionDensity {
+export type CommercialAreaCompetitionDensity = {
   score: number;
   level: "낮음" | "보통" | "높음" | "매우높음";
   sameIndustryCount: number;
   totalShopCount: number;
-}
+};
 
-export interface CommercialAreaShop {
+export type CommercialAreaShop = {
   shopId: string;
   name: string;
   branchName: string;
@@ -103,13 +103,13 @@ export interface CommercialAreaShop {
   lat: number;
   lng: number;
   distanceM: number;
-}
+};
 
-export interface CommercialAreaResponse {
+export type CommercialAreaResponse = {
   shops: CommercialAreaShop[];
   total: number;
   industryDistribution: CommercialAreaIndustryDistribution[];
   commercialAreaType: string;
   competitionDensity: CommercialAreaCompetitionDensity;
   searchRadiusM: number;
-}
+};
