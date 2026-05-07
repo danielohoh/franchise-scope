@@ -1,15 +1,16 @@
 // FranchiseScope Service Worker
 // 전략: 앱 셸 캐시 (Cache-first) + API 네트워크 우선 (Network-first)
 
-const CACHE_VERSION = "v2";
+const CACHE_VERSION = "v3";
 const CACHE_NAME = `franchise-scope-${CACHE_VERSION}`;
 
-// 앱 셸 — 오프라인에서도 즉시 로드
+// 앱 셸 — 오프라인에서도 즉시 로드 (v2.0 라우트 기준)
 const APP_SHELL = [
   "/",
   "/dashboard",
-  "/dashboard/reports",
   "/brand",
+  "/disclosure",
+  "/analysis",
 ];
 
 // ── Install: 앱 셸 프리캐시 ──────────────────────────────
