@@ -68,13 +68,17 @@ self.addEventListener("fetch", (event) => {
 
   // Next.js 정적 자산 (_next/static)
   if (url.pathname.startsWith("/_next/static/")) {
-    // 앱 라우터 JS (chunks/app/)는 dev 모드에서 해시 없이 변경될 수 있어
-    // Network-first 전략 사용 — 항상 최신 코드를 로드하여 stale JS 방지
+    // webpack 런타임(webpack-*.js)은 배포마다 변경되는 청크 매니페스트 파일 —
+    // Cache-first 사용 시 구버전 청크 ID를 참조해 ChunkLoadError 발생
+    // → Network-first로 반드시 최신 버전 수신
+    const isWebpackRuntime = url.pathname.includes("/chunks/webpack");
+
+    // 앱 라우터 JS (chunks/app/, chunks/pages/)도 Network-first
     const isAppChunk =
       url.pathname.includes("/_next/static/chunks/app/") ||
       url.pathname.includes("/_next/static/chunks/pages/");
 
-    if (isAppChunk) {
+    if (isWebpackRuntime || isAppChunk) {
       event.respondWith(
         fetch(request)
           .then((response) => {
@@ -87,7 +91,7 @@ self.addEventListener("fetch", (event) => {
           .catch(() => caches.match(request)),
       );
     } else {
-      // 프레임워크 청크·미디어·폰트 등 불변 자산 — Cache-first
+      // 콘텐츠 해시 기반 불변 자산 (폰트·미디어·프레임워크 청크) — Cache-first
       event.respondWith(
         caches.match(request).then(
           (cached) =>
@@ -105,18 +109,24 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // 페이지 — Stale-while-revalidate (캐시 반환 후 백그라운드 갱신)
+  // 페이지 — Network-first (항상 최신 HTML 제공, 청크 해시 불일치 방지)
   event.respondWith(
-    caches.open(CACHE_NAME).then((cache) =>
-      cache.match(request).then((cached) => {
-        const fetchPromise = fetch(request).then((response) => {
-          if (response.ok && response.status < 400) {
-            cache.put(request, response.clone());
-          }
-          return response;
-        });
-        return cached ?? fetchPromise;
-      }),
-    ),
+    fetch(request)
+      .then((response) => {
+        if (response.ok && response.status < 400) {
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, response.clone()));
+        }
+        return response;
+      })
+      .catch(() =>
+        caches.match(request).then(
+          (cached) =>
+            cached ??
+            new Response("오프라인 상태입니다.", {
+              status: 503,
+              headers: { "Content-Type": "text/plain; charset=utf-8" },
+            }),
+        ),
+      ),
   );
 });
