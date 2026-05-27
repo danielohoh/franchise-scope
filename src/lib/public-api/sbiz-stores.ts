@@ -3,6 +3,7 @@ import 'server-only';
 import {
   mapBrandIndustryToMajor,
   mapBrandIndustryToSub,
+  mapSubIndustryToSub,
   searchShops,
 } from '@/lib/commercial-area/csv-search';
 import { haversineDistance } from '@/lib/utils/geo';
@@ -39,10 +40,16 @@ async function searchCsvFallback(
   lng: number,
   radiusM: number,
   industryCode?: string,
+  category?: string,
 ): Promise<SbizStoreItem[]> {
   try {
     const major = industryCode ? mapBrandIndustryToMajor(industryCode) : undefined;
-    const sub = industryCode ? mapBrandIndustryToSub(industryCode) : undefined;
+    // 업종 세부(category)가 있으면 소분류 매핑 우선, 없으면 대분류 코드 기반 소분류 매핑
+    const sub = category
+      ? mapSubIndustryToSub(category)
+      : industryCode
+        ? mapBrandIndustryToSub(industryCode)
+        : undefined;
 
     const result = await searchShops({
       lat,
@@ -73,10 +80,11 @@ export async function fetchStoreListInRadius(
   lng: number,
   radiusM: number,
   industryCode?: string,
+  category?: string,
 ): Promise<SbizStoreItem[]> {
   const apiKey = process.env.DATA_GO_KR_API_KEY;
   if (!apiKey) {
-    return searchCsvFallback(lat, lng, radiusM, industryCode);
+    return searchCsvFallback(lat, lng, radiusM, industryCode, category);
   }
 
   try {
@@ -102,7 +110,7 @@ export async function fetchStoreListInRadius(
       const response = await fetch(url, { signal: AbortSignal.timeout(8_000) });
 
       if (!response.ok) {
-        return searchCsvFallback(lat, lng, radiusM, industryCode);
+        return searchCsvFallback(lat, lng, radiusM, industryCode, category);
       }
 
       const json = (await response.json()) as SbizApiResponse;
@@ -119,7 +127,7 @@ export async function fetchStoreListInRadius(
 
     return allItems.slice(0, MAX_ITEMS);
   } catch {
-    return searchCsvFallback(lat, lng, radiusM, industryCode);
+    return searchCsvFallback(lat, lng, radiusM, industryCode, category);
   }
 }
 
@@ -128,10 +136,18 @@ export async function getSbizCompetitors(
   lng: number,
   industry: string,
   radiusM: number,
+  category?: string,
 ): Promise<CollectedCompetitorData> {
-  const stores = await fetchStoreListInRadius(lat, lng, radiusM, industry);
+  const stores = await fetchStoreListInRadius(lat, lng, radiusM, industry, category);
 
-  const competitors: CompetitorInfo[] = stores.map((store, index) => {
+  // 공공 API 경로(CSV fallback이 아닌 경우)에서도 업종 세부(category) 기반 소분류 필터 적용
+  // CSV fallback은 searchShops 내부에서 이미 industrySub 필터링이 적용됨
+  const categorySubKeyword = category ? mapSubIndustryToSub(category) : undefined;
+  const filteredStores = categorySubKeyword
+    ? stores.filter((store) => (store.indsSclsNm ?? '').includes(categorySubKeyword))
+    : stores;
+
+  const competitors: CompetitorInfo[] = filteredStores.map((store, index) => {
     const storeLat = Number.parseFloat(store.lat);
     const storeLng = Number.parseFloat(store.lon);
     const parsedLat = Number.isFinite(storeLat) ? storeLat : lat;
