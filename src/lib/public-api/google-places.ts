@@ -1,6 +1,6 @@
 import { buildCacheKey, getOrFetch } from '@/lib/cache/public-data-cache';
 import { mapBrandIndustryToMajor, mapSubIndustryToSub, searchShops } from '@/lib/commercial-area/csv-search';
-import { searchNearbyPlaces } from '@/lib/data/google-places';
+import { searchNearbyPlaces, searchTextPlaces } from '@/lib/data/google-places';
 import { haversineDistance } from '@/lib/utils/geo';
 import type { CollectedCompetitorData, CompetitorInfo } from '@/types/analysis';
 
@@ -141,16 +141,26 @@ async function googleCompetitors(
   const apiKey = process.env.GOOGLE_PLACES_API_KEY?.trim();
   if (!apiKey) return null;
 
-  // category(업종 세부)가 있으면 더 정확한 타입 필터, 없으면 industry(대분류) 기반
-  const places = await searchNearbyPlaces({
-    lat,
-    lng,
-    radiusM,
-    includedTypes: getPlaceTypes(category ?? industry),
-    maxResultCount: 20,
-    rankBy: 'DISTANCE',
-    apiKey,
-  });
+  // category(업종 세부)가 있으면 Text Search로 키워드 직접 검색 (예: "인천 연수구 치킨")
+  // Nearby Search는 세부 업종 필터를 지원하지 않아 모든 음식점이 반환됨
+  const places = category
+    ? await searchTextPlaces({
+        textQuery: category,
+        lat,
+        lng,
+        radiusM,
+        maxResultCount: 20,
+        apiKey,
+      })
+    : await searchNearbyPlaces({
+        lat,
+        lng,
+        radiusM,
+        includedTypes: getPlaceTypes(industry),
+        maxResultCount: 20,
+        rankBy: 'DISTANCE',
+        apiKey,
+      });
 
   if (places.length === 0) return null;
 
