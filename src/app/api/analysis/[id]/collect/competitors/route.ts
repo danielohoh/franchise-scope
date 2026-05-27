@@ -28,7 +28,7 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
 
     const { data: brand } = await auth.supabase
       .from('brands')
-      .select('industry, brand_name')
+      .select('industry, brand_name, category')
       .eq('id', owned.analysis.brand_id)
       .maybeSingle();
 
@@ -37,6 +37,7 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
       owned.analysis.longitude,
       brand?.brand_name ?? brand?.industry ?? '외식',
       1000,
+      brand?.category ?? undefined,
     );
 
     const admin = createAdminClient();
