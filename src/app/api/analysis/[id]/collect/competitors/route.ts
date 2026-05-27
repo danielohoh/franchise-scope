@@ -35,7 +35,7 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
     const data = await collectCompetitors(
       owned.analysis.latitude,
       owned.analysis.longitude,
-      brand?.brand_name ?? brand?.industry ?? '외식',
+      brand?.industry ?? '외식',
       1000,
       brand?.category ?? undefined,
     );
