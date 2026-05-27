@@ -1,5 +1,5 @@
 import { buildCacheKey, getOrFetch } from '@/lib/cache/public-data-cache';
-import { searchShops } from '@/lib/commercial-area/csv-search';
+import { mapBrandIndustryToMajor, mapSubIndustryToSub, searchShops } from '@/lib/commercial-area/csv-search';
 import { searchNearbyPlaces } from '@/lib/data/google-places';
 import { haversineDistance } from '@/lib/utils/geo';
 import type { CollectedCompetitorData, CompetitorInfo } from '@/types/analysis';
@@ -100,9 +100,14 @@ async function csvFallbackCompetitors(
   lng: number,
   industry: string,
   radiusM: number,
+  category?: string,
 ): Promise<CollectedCompetitorData> {
   try {
-    const csv = await searchShops({ lat, lng, radiusM, industryMajor: industry, limit: 50 });
+    // industry(외식/도소매/서비스) → CSV 대분류(음식/소매/생활서비스)
+    // category(커피/치킨/...) → CSV 소분류(카페/치킨/...)
+    const industryMajor = mapBrandIndustryToMajor(industry);
+    const industrySub = category ? mapSubIndustryToSub(category) : undefined;
+    const csv = await searchShops({ lat, lng, radiusM, industryMajor, industrySub, limit: 50 });
     const competitors: CompetitorInfo[] = csv.shops.slice(0, 20).map((shop) => ({
       name: shop.name,
       address: shop.address,
@@ -131,15 +136,17 @@ async function googleCompetitors(
   lng: number,
   industry: string,
   radiusM: number,
+  category?: string,
 ): Promise<CollectedCompetitorData | null> {
   const apiKey = process.env.GOOGLE_PLACES_API_KEY?.trim();
   if (!apiKey) return null;
 
+  // category(업종 세부)가 있으면 더 정확한 타입 필터, 없으면 industry(대분류) 기반
   const places = await searchNearbyPlaces({
     lat,
     lng,
     radiusM,
-    includedTypes: getPlaceTypes(industry),
+    includedTypes: getPlaceTypes(category ?? industry),
     maxResultCount: 20,
     rankBy: 'DISTANCE',
     apiKey,
@@ -181,19 +188,20 @@ export async function searchNearbyCompetitors(
   lng: number,
   industry: string,
   radiusM: number,
+  category?: string,
 ): Promise<CollectedCompetitorData> {
   const key = buildCacheKey({
     provider: 'google_places',
     endpoint: 'nearbyCompetitors',
     lat,
     lng,
-    extra: { industry, radiusM },
+    extra: { industry, radiusM, category },
   });
 
   const fetcher = async (): Promise<CollectedCompetitorData> => {
-    const google = await googleCompetitors(lat, lng, industry, radiusM);
+    const google = await googleCompetitors(lat, lng, industry, radiusM, category);
     if (google) return google;
-    return csvFallbackCompetitors(lat, lng, industry, radiusM);
+    return csvFallbackCompetitors(lat, lng, industry, radiusM, category);
   };
 
   try {

@@ -129,7 +129,7 @@ export const collectCompetitors = async (
   radiusM: number,
   category?: string,
 ): Promise<CollectedCompetitorData | null> => {
-  const primary = await withTimeout(() => searchNearbyCompetitors(lat, lng, industry, radiusM));
+  const primary = await withTimeout(() => searchNearbyCompetitors(lat, lng, industry, radiusM, category));
   const result = primary ?? (await withTimeout(() => getSbizCompetitors(lat, lng, industry, radiusM, category)));
   if (!result) {
     return null;
