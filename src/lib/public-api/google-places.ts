@@ -199,6 +199,12 @@ export async function searchNearbyCompetitors(
   });
 
   const fetcher = async (): Promise<CollectedCompetitorData> => {
+    // 업종 세부(category)가 지정되면 CSV 우선 — Google Places는 세부 업종 필터를 지원하지 않음
+    // CSV 소분류 필터(치킨→치킨, 커피→카페 등)가 훨씬 정확
+    if (category) {
+      const csv = await csvFallbackCompetitors(lat, lng, industry, radiusM, category);
+      if (csv.competitors.length > 0) return csv;
+    }
     const google = await googleCompetitors(lat, lng, industry, radiusM, category);
     if (google) return google;
     return csvFallbackCompetitors(lat, lng, industry, radiusM, category);
