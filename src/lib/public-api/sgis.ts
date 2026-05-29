@@ -95,24 +95,28 @@ async function reverseGeocode(
   lat: number,
   lng: number,
 ): Promise<SgisReverseGeocodeResult | null> {
-  const url = new URL(`${SGIS_BASE}/addr/rgeocodewgs84.json`);
-  url.searchParams.set('accessToken', token);
-  url.searchParams.set('x_coor', String(lng));
-  url.searchParams.set('y_coor', String(lat));
-  // addr_type=21 returns adm_dr_cd (8-digit administrative dong code)
-  // which is directly usable as stats adm_cd.
-  url.searchParams.set('addr_type', '21');
+  try {
+    const url = new URL(`${SGIS_BASE}/addr/rgeocodewgs84.json`);
+    url.searchParams.set('accessToken', token);
+    url.searchParams.set('x_coor', String(lng));
+    url.searchParams.set('y_coor', String(lat));
+    // addr_type=21 returns adm_dr_cd (8-digit administrative dong code)
+    // which is directly usable as stats adm_cd.
+    url.searchParams.set('addr_type', '21');
 
-  const res = await fetch(url.toString(), { signal: AbortSignal.timeout(6_000), cache: 'no-store' });
-  if (!res.ok) return null;
+    const res = await fetch(url.toString(), { signal: AbortSignal.timeout(6_000), cache: 'no-store' });
+    if (!res.ok) return null;
 
-  const json = (await res.json()) as SgisBaseResponse<SgisReverseGeocodeResult | SgisReverseGeocodeResult[]>;
-  if (json.errCd !== 0) return null;
+    const json = (await res.json()) as SgisBaseResponse<SgisReverseGeocodeResult | SgisReverseGeocodeResult[]>;
+    if (json.errCd !== 0) return null;
 
-  if (Array.isArray(json.result)) {
-    return json.result[0] ?? null;
+    if (Array.isArray(json.result)) {
+      return json.result[0] ?? null;
+    }
+    return json.result;
+  } catch {
+    return null;
   }
-  return json.result;
 }
 
 // ── Stats Fetchers ──────────────────────────────────────────────────────────
@@ -132,55 +136,67 @@ async function fetchPopulation(
   admCd: string,
   gender?: 0 | 1 | 2,
 ): Promise<SgisPopulationItem[]> {
-  const url = new URL(`${SGIS_BASE}/stats/searchpopulation.json`);
-  url.searchParams.set('accessToken', token);
-  url.searchParams.set('year', statsYear());
-  url.searchParams.set('adm_cd', admCd);
-  url.searchParams.set('low_search', '0');
-  if (gender !== undefined) url.searchParams.set('gender', String(gender));
+  try {
+    const url = new URL(`${SGIS_BASE}/stats/searchpopulation.json`);
+    url.searchParams.set('accessToken', token);
+    url.searchParams.set('year', statsYear());
+    url.searchParams.set('adm_cd', admCd);
+    url.searchParams.set('low_search', '0');
+    if (gender !== undefined) url.searchParams.set('gender', String(gender));
 
-  const res = await fetch(url.toString(), { signal: AbortSignal.timeout(6_000), cache: 'no-store' });
-  if (!res.ok) return [];
+    const res = await fetch(url.toString(), { signal: AbortSignal.timeout(6_000), cache: 'no-store' });
+    if (!res.ok) return [];
 
-  const json = (await res.json()) as SgisBaseResponse<SgisPopulationItem[]>;
-  if (json.errCd !== 0 || !Array.isArray(json.result)) return [];
-  return json.result;
+    const json = (await res.json()) as SgisBaseResponse<SgisPopulationItem[]>;
+    if (json.errCd !== 0 || !Array.isArray(json.result)) return [];
+    return json.result;
+  } catch {
+    return [];
+  }
 }
 
 async function fetchHousehold(
   token: string,
   admCd: string,
 ): Promise<SgisHouseholdItem[]> {
-  const url = new URL(`${SGIS_BASE}/stats/household.json`);
-  url.searchParams.set('accessToken', token);
-  url.searchParams.set('year', statsYear());
-  url.searchParams.set('adm_cd', admCd);
-  url.searchParams.set('low_search', '0');
+  try {
+    const url = new URL(`${SGIS_BASE}/stats/household.json`);
+    url.searchParams.set('accessToken', token);
+    url.searchParams.set('year', statsYear());
+    url.searchParams.set('adm_cd', admCd);
+    url.searchParams.set('low_search', '0');
 
-  const res = await fetch(url.toString(), { signal: AbortSignal.timeout(6_000), cache: 'no-store' });
-  if (!res.ok) return [];
+    const res = await fetch(url.toString(), { signal: AbortSignal.timeout(6_000), cache: 'no-store' });
+    if (!res.ok) return [];
 
-  const json = (await res.json()) as SgisBaseResponse<SgisHouseholdItem[]>;
-  if (json.errCd !== 0 || !Array.isArray(json.result)) return [];
-  return json.result;
+    const json = (await res.json()) as SgisBaseResponse<SgisHouseholdItem[]>;
+    if (json.errCd !== 0 || !Array.isArray(json.result)) return [];
+    return json.result;
+  } catch {
+    return [];
+  }
 }
 
 async function fetchCompany(
   token: string,
   admCd: string,
 ): Promise<SgisCompanyItem[]> {
-  const url = new URL(`${SGIS_BASE}/stats/company.json`);
-  url.searchParams.set('accessToken', token);
-  url.searchParams.set('year', companyYear());
-  url.searchParams.set('adm_cd', admCd);
-  url.searchParams.set('low_search', '0');
+  try {
+    const url = new URL(`${SGIS_BASE}/stats/company.json`);
+    url.searchParams.set('accessToken', token);
+    url.searchParams.set('year', companyYear());
+    url.searchParams.set('adm_cd', admCd);
+    url.searchParams.set('low_search', '0');
 
-  const res = await fetch(url.toString(), { signal: AbortSignal.timeout(6_000), cache: 'no-store' });
-  if (!res.ok) return [];
+    const res = await fetch(url.toString(), { signal: AbortSignal.timeout(6_000), cache: 'no-store' });
+    if (!res.ok) return [];
 
-  const json = (await res.json()) as SgisBaseResponse<SgisCompanyItem[]>;
-  if (json.errCd !== 0 || !Array.isArray(json.result)) return [];
-  return json.result;
+    const json = (await res.json()) as SgisBaseResponse<SgisCompanyItem[]>;
+    if (json.errCd !== 0 || !Array.isArray(json.result)) return [];
+    return json.result;
+  } catch {
+    return [];
+  }
 }
 
 // ── Radius Sampling ─────────────────────────────────────────────────────────
@@ -300,7 +316,7 @@ async function collectDistrictStats(
   // Step 4: Assemble per-district stats
   const districts: DistrictStats[] = admCds.map((admCd, i) => {
     const meta = districtMap.get(admCd)!;
-    const pop = popResults[i]?.[0]?.population ?? 0;
+    const pop = Number(popResults[i]?.[0]?.population) || 0;
     const hh = Number(householdResults[i]?.[0]?.household_cnt) || 0;
     const workers = Number(companyResults[i]?.[0]?.tot_worker) || 0;
 
