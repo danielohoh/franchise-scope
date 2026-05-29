@@ -6,6 +6,7 @@ import { getAuthedUser, getOwnedAnalysis } from '@/app/api/analysis/_utils';
 import type { Database } from '@/types/database';
 
 export const maxDuration = 60;
+export const preferredRegion = 'icn1';
 
 export async function POST(_request: Request, context: { params: Promise<{ id: string }> }) {
   try {
