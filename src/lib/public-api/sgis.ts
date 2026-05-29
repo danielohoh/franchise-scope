@@ -357,8 +357,8 @@ async function fetchGenderRatio(token: string, admCd: string): Promise<string> {
     fetchPopulation(token, admCd, 2),
   ]);
 
-  const male = maleResult[0]?.population ?? 0;
-  const female = femaleResult[0]?.population ?? 0;
+  const male = Number(maleResult[0]?.population) || 0;
+  const female = Number(femaleResult[0]?.population) || 0;
   const total = male + female;
 
   if (total === 0) return '남 50% / 여 50%';
