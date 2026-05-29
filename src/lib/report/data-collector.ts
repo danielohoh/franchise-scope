@@ -81,7 +81,8 @@ export const collectPopulation = async (
   lat: number,
   lng: number,
 ): Promise<CollectedPopulationData | null> => {
-  return withTimeout(() => getPopulationData(lat, lng));
+  // SGIS 연동 시 다건 외부 호출이 발생하므로 기본 timeout(8.5s)보다 여유를 둔다.
+  return withTimeout(() => getPopulationData(lat, lng), 25_000);
 };
 
 export const collectCommercial = async (
