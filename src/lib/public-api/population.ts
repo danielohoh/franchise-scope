@@ -1,4 +1,5 @@
 import { searchShops } from '@/lib/commercial-area/csv-search';
+import { getSgisPopulationData, isSgisConfigured } from '@/lib/public-api/sgis';
 import type { CollectedPopulationData } from '@/types/analysis';
 
 type PopulationProvider = {
@@ -193,15 +194,69 @@ function createMockPopulationProvider(): MockPopulationProvider {
   };
 }
 
+// ── SGIS Provider ───────────────────────────────────────────────────────────
+
+function createSgisPopulationProvider(): PopulationProvider {
+  return {
+    async getPopulationData(lat: number, lng: number): Promise<CollectedPopulationData> {
+      const sgisData = await getSgisPopulationData(lat, lng);
+
+      // SGIS provides real population/household/worker data but not commercial area type
+      // or hourly traffic — fill those from CSV/sbiz as before
+      const csvAreaType = await getCsvFallbackAreaType(lat, lng);
+      const commercialAreaType = csvAreaType ?? '혼합상권';
+
+      return {
+        ...sgisData,
+        commercial_area_type: commercialAreaType,
+        // Hourly traffic: SGIS doesn't provide this — use estimated defaults
+        hourly_traffic: {
+          morning: { weekday: 64, weekend: 48 },
+          lunch: { weekday: 92, weekend: 73 },
+          afternoon: { weekday: 71, weekend: 78 },
+          evening: { weekday: 83, weekend: 95 },
+          night: { weekday: 39, weekend: 61 },
+        },
+      };
+    },
+  };
+}
+
+// ── Provider Selection (SGIS → Sbiz Estimate → Mock) ────────────────────────
+
 export function getPopulationProvider(): PopulationProvider {
+  // Priority 1: SGIS real census data
+  if (isSgisConfigured()) {
+    return createSgisPopulationProvider();
+  }
+
+  // Priority 2: Sbiz store distribution estimate
   const apiKey = process.env.DATA_GO_KR_API_KEY?.trim();
-  return apiKey ? createRealSbizPopulationProvider(apiKey) : createMockPopulationProvider();
+  if (apiKey) {
+    return createRealSbizPopulationProvider(apiKey);
+  }
+
+  // Priority 3: Mock
+  return createMockPopulationProvider();
 }
 
 export async function getPopulationData(lat: number, lng: number): Promise<CollectedPopulationData> {
   try {
-    return await getPopulationProvider().getPopulationData(lat, lng);
-  } catch {
+    const data = await getPopulationProvider().getPopulationData(lat, lng);
+    return data;
+  } catch (error) {
+    // If SGIS fails, fall back to sbiz estimate or mock
+    console.error('[population] Primary provider failed, falling back:', error instanceof Error ? error.message : error);
+
+    const apiKey = process.env.DATA_GO_KR_API_KEY?.trim();
+    if (apiKey) {
+      try {
+        return await createRealSbizPopulationProvider(apiKey).getPopulationData(lat, lng);
+      } catch {
+        // sbiz also failed, fall through to mock
+      }
+    }
+
     return createMockPopulationProvider().getPopulationData(lat, lng);
   }
 }
