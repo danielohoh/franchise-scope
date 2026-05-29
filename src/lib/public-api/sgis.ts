@@ -32,6 +32,7 @@ type SgisReverseGeocodeResult = {
   sgg_cd: string;
   emdong_nm?: string;
   emdong_cd?: string;
+  adm_dr_cd?: string;
   full_addr: string;
 };
 
@@ -98,27 +99,32 @@ async function reverseGeocode(
   url.searchParams.set('accessToken', token);
   url.searchParams.set('x_coor', String(lng));
   url.searchParams.set('y_coor', String(lat));
-  url.searchParams.set('addr_type', '20'); // 행정동
+  // addr_type=21 returns adm_dr_cd (8-digit administrative dong code)
+  // which is directly usable as stats adm_cd.
+  url.searchParams.set('addr_type', '21');
 
   const res = await fetch(url.toString(), { signal: AbortSignal.timeout(6_000), cache: 'no-store' });
   if (!res.ok) return null;
 
-  const json = (await res.json()) as SgisBaseResponse<SgisReverseGeocodeResult>;
+  const json = (await res.json()) as SgisBaseResponse<SgisReverseGeocodeResult | SgisReverseGeocodeResult[]>;
   if (json.errCd !== 0) return null;
 
+  if (Array.isArray(json.result)) {
+    return json.result[0] ?? null;
+  }
   return json.result;
 }
 
 // ── Stats Fetchers ──────────────────────────────────────────────────────────
 
 function statsYear(): string {
-  // Census data typically lags 1-2 years
-  return String(new Date().getFullYear() - 1);
+  // SGIS currently supports up to 2024 for population/household in production.
+  return '2024';
 }
 
 function companyYear(): string {
-  // Company data lags by ~2 years
-  return String(new Date().getFullYear() - 2);
+  // Company statistics usually lag more than resident population.
+  return '2023';
 }
 
 async function fetchPopulation(
@@ -263,7 +269,7 @@ async function collectDistrictStats(
   const districtMap = new Map<string, { admNm: string; inRadius: Set<500 | 1000 | 2000> }>();
 
   for (const { point, result } of geocodeResults) {
-    const admCd = result?.emdong_cd;
+    const admCd = result?.adm_dr_cd;
     if (!admCd) continue;
 
     const existing = districtMap.get(admCd);
@@ -379,7 +385,7 @@ export async function getSgisPopulationData(
 
       // Get center district for gender ratio
       const centerGeo = await reverseGeocode(token, lat, lng);
-      const centerAdmCd = centerGeo?.emdong_cd;
+      const centerAdmCd = centerGeo?.adm_dr_cd;
 
       // Run district aggregation and gender ratio in parallel
       const [districts, genderRatio] = await Promise.all([
