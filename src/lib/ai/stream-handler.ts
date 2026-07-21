@@ -1,4 +1,6 @@
+import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGroq } from '@ai-sdk/groq';
+import { createOpenAI } from '@ai-sdk/openai';
 import { generateObject, streamText } from 'ai';
 import { z } from 'zod';
 
@@ -42,13 +44,35 @@ type SseEvent =
   | { type: 'complete' }
   | { type: 'error'; section?: keyof ReportSections; message: string };
 
+/** LLM_PROVIDER 환경변수에 따라 올바른 provider 모델을 반환 */
+function getLLMStreamModel() {
+  const apiKey = process.env.LLM_API_KEY;
+  const modelId = process.env.LLM_MODEL ?? 'llama-3.3-70b-versatile';
+  const provider = (process.env.LLM_PROVIDER ?? 'groq') as 'anthropic' | 'openai' | 'groq';
+
+  if (!apiKey) throw new Error('LLM_API_KEY is not configured');
+
+  switch (provider) {
+    case 'anthropic': {
+      const anthropic = createAnthropic({ apiKey });
+      return anthropic(modelId);
+    }
+    case 'openai': {
+      const openai = createOpenAI({ apiKey });
+      return openai(modelId);
+    }
+    case 'groq':
+    default: {
+      const groq = createGroq({ apiKey });
+      return groq(modelId);
+    }
+  }
+}
+
+/** @deprecated createGroqClient 대신 getLLMStreamModel() 사용 */
 export const createGroqClient = () => {
   const apiKey = process.env.LLM_API_KEY;
-
-  if (!apiKey) {
-    throw new Error('LLM_API_KEY is not configured');
-  }
-
+  if (!apiKey) throw new Error('LLM_API_KEY is not configured');
   return createGroq({ apiKey });
 };
 
@@ -59,11 +83,10 @@ export const streamAnalysisSection = async (
   onChunk: (chunk: string) => void,
 ): Promise<StreamResult> => {
   try {
-    const groq = createGroqClient();
-    const modelName = process.env.LLM_MODEL ?? 'llama-3.3-70b-versatile';
+    const model = getLLMStreamModel();
 
     const result = streamText({
-      model: groq(modelName),
+      model,
       system: systemPrompt,
       prompt: userPrompt,
       maxOutputTokens: 2000,
@@ -103,11 +126,10 @@ export const generateStructuredExtraction = async <T>(
   userPrompt: string,
   schema: z.ZodSchema<T>,
 ): Promise<T> => {
-  const groq = createGroqClient();
-  const modelName = process.env.LLM_MODEL ?? 'llama-3.3-70b-versatile';
+  const model = getLLMStreamModel();
 
   const result = await generateObject({
-    model: groq(modelName),
+    model,
     system: systemPrompt,
     prompt: userPrompt,
     schema,
