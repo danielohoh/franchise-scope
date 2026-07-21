@@ -116,8 +116,11 @@ export const streamAnalysisSection = async (
     }
 
     return { fullText, tokenCount };
-  } catch {
-    return { fullText: '', tokenCount: 0 };
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error('[stream-handler] streamAnalysisSection 오류:', errMsg);
+    // 에러 메시지를 fullText로 반환해 클라이언트에서 원인 파악 가능하게 함
+    return { fullText: `[오류: ${errMsg}]`, tokenCount: 0 };
   }
 };
 
