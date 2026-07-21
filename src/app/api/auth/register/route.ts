@@ -26,14 +26,7 @@ export async function POST(request: Request) {
     const admin = createAdminClient();
 
     // 1) 이미 가입된 이메일인지 확인
-    const { data: existingUsers, error: listError } = await admin.auth.admin.listUsers();
-    if (listError) {
-      console.error("[register] listUsers 실패", listError);
-      return NextResponse.json(
-        { error: "서버 오류가 발생했습니다.", _debug: `listUsers: ${listError.message}` },
-        { status: 500 },
-      );
-    }
+    const { data: existingUsers } = await admin.auth.admin.listUsers();
     const alreadyExists = existingUsers?.users.some(
       (u) => u.email?.toLowerCase() === email.toLowerCase(),
     );
@@ -55,7 +48,7 @@ export async function POST(request: Request) {
     if (createError || !userData.user) {
       console.error("[register] createUser 실패", createError);
       return NextResponse.json(
-        { error: "계정 생성에 실패했습니다. 다시 시도해주세요.", _debug: `v3|createUser: ${createError?.message ?? "user_is_null"}`, _userData: JSON.stringify(userData) },
+        { error: "계정 생성에 실패했습니다. 다시 시도해주세요." },
         { status: 500 },
       );
     }
