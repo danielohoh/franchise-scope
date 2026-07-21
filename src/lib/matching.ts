@@ -76,11 +76,10 @@ export function matchListings(
             );
           }
         }
-      } else {
-        // 좌표 없어 세대수 계산 불가 → 조건 미지정과 동일하게 만점 부여
-        score += SCORE_HOUSEHOLDS;
-        reasons.push("세대수 데이터 없음 (위치 미확인)");
       }
+      // 좌표가 없으면 세대수 조건을 검증할 수 없다. 조건이 명시된 이상
+      // 검증 불가 매물에 만점을 주면 실제로 조건을 충족하는 매물과 점수가
+      // 같아져 매칭 신뢰도가 떨어지므로, 점수를 부여하지 않는다(+0).
     } else {
       // 조건 미지정 시 만점
       score += SCORE_HOUSEHOLDS;
