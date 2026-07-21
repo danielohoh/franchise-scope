@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     if (createError || !userData.user) {
       console.error("[register] createUser 실패", createError);
       return NextResponse.json(
-        { error: "계정 생성에 실패했습니다. 다시 시도해주세요." },
+        { error: "계정 생성에 실패했습니다. 다시 시도해주세요.", _debug: createError?.message },
         { status: 500 },
       );
     }
