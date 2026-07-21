@@ -49,14 +49,18 @@ export async function updateSession(request: NextRequest) {
   }
 
   try {
+    // getSession()은 쿠키에서 JWT를 읽는 로컬 연산 → 네트워크 요청 없음
+    // getUser()는 매번 Supabase 서버로 검증 요청 → Vercel Edge 타임아웃(504) 유발
     const {
-      data: { user },
+      data: { session },
       error,
-    } = await supabase.auth.getUser();
+    } = await supabase.auth.getSession();
 
     if (error) {
-      console.error("Failed to fetch user in middleware", error);
+      console.error("Failed to fetch session in middleware", error);
     }
+
+    const user = session?.user ?? null;
 
     const pathname = request.nextUrl.pathname;
     const isDashboardRoute = pathname.startsWith("/dashboard");
