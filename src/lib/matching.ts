@@ -1,0 +1,143 @@
+import { calculateNearbyHouseholds } from "@/lib/geo";
+import type {
+  DbNaverListing,
+  ParsedConditions,
+  MatchedListing,
+  DbApartmentData,
+} from "@/types/recommend";
+
+const SCORE_AREA = 30;
+const SCORE_HOUSEHOLDS = 30;
+const SCORE_PARKING = 15;
+const SCORE_BUILDING_USE = 15;
+const SCORE_MONTHLY_RENT = 10;
+const MIN_SCORE = 60;
+
+/**
+ * 매물 목록을 조건에 따라 점수화하고,
+ * 기준 점수(60점) 이상인 매물만 점수 내림차순으로 반환합니다.
+ */
+export function matchListings(
+  listings: DbNaverListing[],
+  conditions: ParsedConditions,
+  apartmentData: DbApartmentData[],
+): MatchedListing[] {
+  const results: MatchedListing[] = [];
+
+  for (const listing of listings) {
+    let score = 0;
+    const reasons: string[] = [];
+    let nearbyHouseholds: number | null = null;
+    let nearbyComplexes: { name: string; households: number; distance: number }[] = [];
+
+    // 1. 면적 매칭 (30점)
+    if (conditions.minAreaPyeong != null || conditions.maxAreaPyeong != null) {
+      const area = listing.area_pyeong;
+      if (area != null) {
+        const minOk =
+          conditions.minAreaPyeong == null || area >= conditions.minAreaPyeong;
+        const maxOk =
+          conditions.maxAreaPyeong == null || area <= conditions.maxAreaPyeong;
+        if (minOk && maxOk) {
+          score += SCORE_AREA;
+          reasons.push(`면적 ${area}평 (조건 충족)`);
+        }
+      }
+    } else {
+      // 조건 미지정 시 만점
+      score += SCORE_AREA;
+    }
+
+    // 2. 세대수 매칭 (30점)
+    if (conditions.minHouseholds != null) {
+      if (listing.latitude != null && listing.longitude != null) {
+        const result = calculateNearbyHouseholds(
+          listing.latitude,
+          listing.longitude,
+          apartmentData,
+          conditions.radiusMeters,
+        );
+        nearbyHouseholds = result.total;
+        nearbyComplexes = result.complexes;
+
+        if (result.total >= conditions.minHouseholds) {
+          score += SCORE_HOUSEHOLDS;
+          reasons.push(
+            `반경 ${conditions.radiusMeters}m 내 ${result.total.toLocaleString()}세대 (조건 충족)`,
+          );
+        } else if (result.total > 0) {
+          // 세대수가 기준보다 적어도 절반 이상이면 절반 점수
+          const ratio = result.total / conditions.minHouseholds;
+          if (ratio >= 0.5) {
+            const partial = Math.round(SCORE_HOUSEHOLDS * ratio);
+            score += partial;
+            reasons.push(
+              `반경 ${conditions.radiusMeters}m 내 ${result.total.toLocaleString()}세대 (부분 충족)`,
+            );
+          }
+        }
+      } else {
+        // 좌표 없어 세대수 계산 불가 → 조건 미지정과 동일하게 만점 부여
+        score += SCORE_HOUSEHOLDS;
+        reasons.push("세대수 데이터 없음 (위치 미확인)");
+      }
+    } else {
+      // 조건 미지정 시 만점
+      score += SCORE_HOUSEHOLDS;
+    }
+
+    // 3. 주차 가능 여부 (15점)
+    if (conditions.parkingRequired) {
+      if (listing.parking_available === true) {
+        score += SCORE_PARKING;
+        reasons.push("주차 가능");
+      } else if (listing.parking_available === null) {
+        // 직방 데이터에 주차 정보 없음 → 절반 점수 부여
+        score += Math.round(SCORE_PARKING / 2);
+        reasons.push("주차 정보 미확인 (부분 점수)");
+      }
+      // parking_available === false 면 0점
+    } else {
+      score += SCORE_PARKING;
+    }
+
+    // 4. 건물 용도 (15점)
+    if (conditions.buildingUse && conditions.buildingUse.length > 0) {
+      const listingUse = listing.building_use ?? "";
+      const matched = conditions.buildingUse.some((use) =>
+        listingUse.includes(use),
+      );
+      if (matched) {
+        score += SCORE_BUILDING_USE;
+        reasons.push(`건물용도 "${listingUse}" (조건 충족)`);
+      }
+    } else {
+      score += SCORE_BUILDING_USE;
+    }
+
+    // 5. 월세 (10점)
+    if (conditions.maxMonthlyRent != null) {
+      const rent = listing.monthly_rent;
+      if (rent != null && rent <= conditions.maxMonthlyRent) {
+        score += SCORE_MONTHLY_RENT;
+        reasons.push(`월세 ${rent}만원 (조건 충족)`);
+      }
+    } else {
+      score += SCORE_MONTHLY_RENT;
+    }
+
+    if (score >= MIN_SCORE) {
+      results.push({
+        ...listing,
+        matchScore: score,
+        matchReasons: reasons,
+        nearbyHouseholds,
+        nearbyComplexes,
+      });
+    }
+  }
+
+  results.sort((a, b) => b.matchScore - a.matchScore);
+
+  return results;
+}
